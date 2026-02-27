@@ -1,0 +1,59 @@
+这个选择非常硬核且极具前瞻性。混合架构是目前 Web3 大规模采用的真正答案。
+
+为了在你的 React PWA 中实现“小白扫脸 + 巨鲸插管”的双轨免 Gas 体验，你的前端不需要承载沉重的节点逻辑，但必须是一个极其精密的**“签名打包工厂”**。
+
+以下是你需要在 PWA 中编写的代码清单，按逻辑模块划分。
+
+### 一、 基础武器库 (Dependencies)
+
+不要造轮子，用最稳固的库来处理底层的密码学和链交互。
+
+* **`@solana/web3.js` (v1.x 或最新的 v2.x):** 用于构建交易（Transaction / VersionedTransaction）、序列化数据。
+* **`@solana/wallet-adapter-react` & 相关钱包组件:** 用于极速接入 Phantom、Solflare 等传统 Web3 钱包。
+* **`@simplewebauthn/browser`:** 强烈建议使用这个库来替代原生的 `navigator.credentials` API。它将复杂的 WebAuthn 握手逻辑封装成了极简的 Promise 函数。
+* **`framer-motion`:** 用于实现你要求的“苹果级流畅物理回弹动画”和 Bento Box 布局的过渡。
+* **`bs58` / `buffer`:** 用于处理 Solana 极度依赖的 Base58 和字节数组转换。
+
+---
+
+### 二、 Passkey (扫脸/指纹) 核心模块
+
+这是最难也是最出彩的部分。你需要编写两个核心工作流，纯前端完成，不依赖任何第三方 SaaS。
+
+* **注册生成器 (Registration):** 编写函数调用 `@simplewebauthn/browser` 的 `startRegistration()`。触发手机安全芯片生成 `secp256r1` 密钥对。**核心任务是提取并保存公钥 (Public Key) 和 Credential ID**，这部分数据需要发给 Relayer 进行链上账号初始化。
+* **签名引擎 (Authentication):** 编写函数调用 `startAuthentication()`。当用户买东西时，将“购买指令的 Hash”作为 Challenge（挑战码）传给硬件。
+* **DER 签名解析器 (Crucial):** 硬件吐出的签名是 ASN.1 DER 格式的。Solana 链上的预编译合约只认原生的 `r` 和 `s` 字节（各 32 字节）。你必须在前端写一个小工具函数，把 DER 格式的签名拆解成 `r` 和 `s`，拼装后再发给 Relayer。
+
+---
+
+### 三、 Web3 钱包适配模块 (巨鲸通道)
+
+这部分相对传统，但用法有细微区别。
+
+* **WalletProvider 包装器:** 在 React 根节点包裹 Solana 标准的钱包上下文。
+* **离线签名挂载 (Offline Signer):** 绝不调用 `sendTransaction`。你需要获取用户的钱包实例，调用 `signTransaction`（部分签名）或 `signMessage`。记住，你的 PWA 只是借用巨鲸的私钥盖个章，绝不自己付 Gas 广播。
+
+---
+
+### 四、 黑暗路由通信引擎 (The Intent Relayer)
+
+这是连接“极简前端”与“深渊节点”的桥梁。
+
+* **免 Gas 交易组装机 (Transaction Builder):** 编写函数，将买卖参数组装成 Solana Instruction。**硬性规定：将 `feePayer` 字段强行设置为你的 Relayer 节点的公钥**。
+* **意图序列化 (Intent Serializer):** * 如果是 **Web3 钱包用户**：将拿到的已部分签名的 `Transaction` 对象，通过 `.serialize({ requireAllSignatures: false })` 转化为 Buffer，再转 Base64。
+* 如果是 **Passkey 用户**：将组装好的原始 Instruction 数据、用户公钥以及拆解好的硬件签名 `r` 和 `s` 打包成一个 JSON。
+
+
+* **Relayer 投递员:** 编写 WebSocket 客户端或极简的 `fetch` 请求，将上述打包好的 Base64/JSON 抛给 Relayer 服务器，并监听“上链成功”的回调。
+
+---
+
+### 五、 极简 UI 层 (The Bento Box Facade)
+
+前端视觉的实现清单。
+
+* **统一登录/支付按钮:** 封装一个超级组件。内部根据用户设备环境和历史状态判断。如果是新用户，展示大大的 **“Continue with Passkey”**；底部留一个灰色的 **“Connect Web3 Wallet”**。
+* **本地设备缓存 (Local State):** 使用 IndexedDB (推荐 `idb` 库) 存储当前用户的偏好类型（是 Passkey 用户还是 Wallet 用户），以及对应的 Credential ID，以便下次打开 PWA 时直接调起正确的签名方式。
+* **Service Worker 嗅探器:** 根据你的架构，编写 Service Worker 脚本，定期去链上或 Arweave 网关拉取最新版本号，一旦发现落后，静默下载并提示用户“更新完成，点击重启”。
+
+---
