@@ -1,0 +1,182 @@
+import { create } from 'zustand'
+import {
+  generateMnemonic,
+  validateMnemonic,
+  keypairFromMnemonic,
+  importFromPrivateKey,
+  encryptData,
+  decryptData,
+  encryptMnemonic,
+  verifyBiometric,
+  deriveKeyFromPin,
+  generateSalt,
+  loadWalletData,
+  saveWalletData,
+  clearWalletData,
+  uint8ToBase64,
+  base64ToUint8,
+  type WalletData,
+} from '../services/walletCrypto'
+
+// Module-scoped secret key — never exposed in store state or devtools
+let _secretKey: Uint8Array | null = null
+
+export function getSecretKey(): Uint8Array | null {
+  return _secretKey
+}
+
+interface WalletState {
+  publicKey: string | null
+  isUnlocked: boolean
+  isLoading: boolean
+  error: string | null
+  pendingMnemonic: string | null
+
+  createWallet: (pin: string) => Promise<void>
+  importWalletFromMnemonic: (mnemonic: string, pin: string) => Promise<void>
+  importWalletFromKey: (base58Key: string, pin: string) => Promise<void>
+  unlock: (pin: string) => Promise<void>
+  lock: () => void
+  disconnect: () => void
+  hasWallet: () => boolean
+  acknowledgeMnemonic: () => void
+}
+
+export const useWalletStore = create<WalletState>((set) => ({
+  publicKey: loadWalletData()?.publicKey ?? null,
+  isUnlocked: false,
+  isLoading: false,
+  error: null,
+  pendingMnemonic: null,
+
+  hasWallet: () => !!loadWalletData(),
+
+  createWallet: async (pin: string) => {
+    set({ isLoading: true, error: null })
+    try {
+      await verifyBiometric()
+      const mnemonic = generateMnemonic()
+      const { publicKey, secretKey } = await keypairFromMnemonic(mnemonic)
+
+      const salt = generateSalt()
+      const encKey = await deriveKeyFromPin(pin, salt)
+
+      const encrypted = encryptData(secretKey, encKey)
+      const encMnemonic = encryptMnemonic(mnemonic, encKey)
+
+      const data: WalletData = {
+        version: 2,
+        publicKey,
+        encrypted,
+        encryptedMnemonic: encMnemonic,
+        pinSalt: uint8ToBase64(salt),
+        createdAt: new Date().toISOString(),
+      }
+      saveWalletData(data)
+
+      _secretKey = secretKey
+      set({ publicKey, isUnlocked: true, isLoading: false, pendingMnemonic: mnemonic })
+    } catch (e) {
+      set({ isLoading: false, error: (e as Error).message })
+    }
+  },
+
+  importWalletFromMnemonic: async (mnemonic: string, pin: string) => {
+    set({ isLoading: true, error: null })
+    try {
+      await verifyBiometric()
+      if (!validateMnemonic(mnemonic)) throw new Error('Invalid mnemonic phrase')
+
+      const { publicKey, secretKey } = await keypairFromMnemonic(mnemonic)
+      const salt = generateSalt()
+      const encKey = await deriveKeyFromPin(pin, salt)
+
+      const encrypted = encryptData(secretKey, encKey)
+      const encMnemonic = encryptMnemonic(mnemonic, encKey)
+
+      const data: WalletData = {
+        version: 2,
+        publicKey,
+        encrypted,
+        encryptedMnemonic: encMnemonic,
+        pinSalt: uint8ToBase64(salt),
+        createdAt: new Date().toISOString(),
+      }
+      saveWalletData(data)
+
+      _secretKey = secretKey
+      set({ publicKey, isUnlocked: true, isLoading: false })
+    } catch (e) {
+      set({ isLoading: false, error: (e as Error).message })
+    }
+  },
+
+  importWalletFromKey: async (base58Key: string, pin: string) => {
+    set({ isLoading: true, error: null })
+    try {
+      await verifyBiometric()
+      const { publicKey, secretKey } = importFromPrivateKey(base58Key)
+      const salt = generateSalt()
+      const encKey = await deriveKeyFromPin(pin, salt)
+
+      const encrypted = encryptData(secretKey, encKey)
+
+      const data: WalletData = {
+        version: 2,
+        publicKey,
+        encrypted,
+        pinSalt: uint8ToBase64(salt),
+        createdAt: new Date().toISOString(),
+      }
+      saveWalletData(data)
+
+      _secretKey = secretKey
+      set({ publicKey, isUnlocked: true, isLoading: false })
+    } catch (e) {
+      set({ isLoading: false, error: (e as Error).message })
+    }
+  },
+
+  unlock: async (pin: string) => {
+    set({ isLoading: true, error: null })
+    try {
+      const data = loadWalletData()
+      if (!data) throw new Error('No wallet found')
+
+      const salt = base64ToUint8(data.pinSalt)
+      const encKey = await deriveKeyFromPin(pin, salt)
+
+      const secretKey = decryptData(
+        data.encrypted.nonce,
+        data.encrypted.ciphertext,
+        encKey,
+      )
+
+      _secretKey = secretKey
+      set({ publicKey: data.publicKey, isUnlocked: true, isLoading: false })
+    } catch (e) {
+      set({ isLoading: false, error: (e as Error).message })
+    }
+  },
+
+  lock: () => {
+    if (_secretKey) {
+      _secretKey.fill(0)
+      _secretKey = null
+    }
+    set({ isUnlocked: false })
+  },
+
+  disconnect: () => {
+    if (_secretKey) {
+      _secretKey.fill(0)
+      _secretKey = null
+    }
+    clearWalletData()
+    set({ publicKey: null, isUnlocked: false, error: null, pendingMnemonic: null })
+  },
+
+  acknowledgeMnemonic: () => {
+    set({ pendingMnemonic: null })
+  },
+}))

@@ -1,70 +1,164 @@
-import { Link, useLocation } from 'react-router-dom'
-import { Search, Bell, SlidersHorizontal, Boxes } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { ArrowLeft, ShoppingCart, Search, X, Gavel } from 'lucide-react'
 import { useStore } from '../store/useStore'
+import type { RouteMeta } from '../navigation/routeMeta'
+import { useSafeBack } from '../hooks/useSafeBack'
+import { APP_ROUTE_PATHS } from '../navigation/paths'
+import GlitchLogo from './GlitchLogo'
+import ListingTypeBar, { type ListingType } from './ListingTypeBar'
+import FollowedSellersBar from './FollowedSellersBar'
 
-export default function Navbar() {
-  const { pathname } = useLocation()
-  const products = useStore((s) => s.products)
-  const isHome = pathname === '/'
+interface NavbarProps {
+  variant: 'tab' | 'stack'
+  routeMeta: RouteMeta
+}
 
-  if (isHome) {
+export default function Navbar({ variant, routeMeta }: NavbarProps) {
+  const navigate = useNavigate()
+  const isDiscoverPanelOpen = useStore((s) => s.isDiscoverPanelOpen)
+  const setDiscoverPanelOpen = useStore((s) => s.setDiscoverPanelOpen)
+  const goBack = useSafeBack(APP_ROUTE_PATHS.home)
+
+  const [listingTypes, setListingTypes] = useState<ListingType[]>([])
+  const [tagBarVisible, setTagBarVisible] = useState(true)
+  const lastScrollY = useRef(0)
+
+  useEffect(() => {
+    if (variant !== 'tab' || (routeMeta.kind !== 'home' && routeMeta.key !== 'follow')) return
+    const handleScroll = () => {
+      const y = window.scrollY
+      const delta = y - lastScrollY.current
+      if (delta > 3) {
+        setTagBarVisible(false)
+      } else if (delta < -1) {
+        setTagBarVisible(true)
+      }
+      lastScrollY.current = y
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [variant, routeMeta.kind])
+
+  const exitToHome = () => {
+    navigate(APP_ROUTE_PATHS.home, { replace: true })
+  }
+
+  // Tab variant: logo + cart + search bar for all tabs
+  if (variant === 'tab') {
     return (
       <nav
-        className="sticky top-0 z-50 bg-white"
+        className="fixed top-0 left-0 right-0 z-50 bg-[var(--color-bg)]"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
-        <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-          {/* Logo */}
-          <Link to="/" className="flex items-center gap-1.5">
-            <span className="text-xl font-bold tracking-[-0.04em] font-mono-accent text-[var(--color-accent)]"
-              style={{
-                textShadow: '0 0 12px rgba(204, 255, 0, 0.4)',
-              }}
-            >
-              UMBRA
-            </span>
-            <span className="text-[10px] font-mono-accent text-[var(--color-accent)] opacity-60 tracking-widest mt-0.5">
-              ◆
-            </span>
+        {/* Top row: logo + cart */}
+        <div className="max-w-7xl mx-auto px-3 h-12 flex items-center justify-between">
+          <Link to={APP_ROUTE_PATHS.home} className="flex items-center">
+            <GlitchLogo />
           </Link>
 
-          {/* Right: item count + settings */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-gray-100">
-              <Boxes size={14} strokeWidth={1.8} className="text-[var(--color-text-secondary)]" />
-              <span className="text-xs font-mono-accent font-medium text-[var(--color-text)]">
-                {products.length}
-              </span>
-              <span className="text-[10px] text-[var(--color-text-secondary)]">on-chain</span>
-            </div>
-            <button className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors">
-              <SlidersHorizontal size={20} strokeWidth={1.8} />
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => {/* TODO: cart page */}}
+            className="tap-feedback p-2.5 rounded-full text-[var(--color-text)] transition-colors"
+            aria-label="Shopping cart"
+          >
+            <ShoppingCart size={22} strokeWidth={1.8} />
+          </button>
         </div>
+
+        {/* Search bar */}
+        <div className="max-w-7xl mx-auto px-3 pb-2">
+          {isDiscoverPanelOpen ? (
+            <div className="flex items-center gap-2">
+              <div className="flex-1 flex items-center gap-2 bg-white rounded-lg px-4 py-2.5 border border-[var(--color-border)]">
+                <Search size={16} strokeWidth={2} className="text-[var(--color-text-secondary)] shrink-0" />
+                <span className="flex-1 text-sm text-[var(--color-text-secondary)]">Searching...</span>
+                <div className="w-px h-5 bg-[var(--color-border)]" />
+                <Gavel size={16} strokeWidth={2} className="text-[var(--color-text-secondary)] shrink-0" />
+              </div>
+              <button
+                type="button"
+                onClick={() => setDiscoverPanelOpen(false)}
+                className="tap-feedback p-2 text-[var(--color-text-secondary)]"
+                aria-label="Close search"
+              >
+                <X size={20} strokeWidth={2} />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setDiscoverPanelOpen(true)}
+              className="w-full flex items-center gap-2 bg-white rounded-lg px-4 py-2.5 border border-[var(--color-border)] tap-feedback"
+            >
+              <Search size={16} strokeWidth={2} className="text-[var(--color-text-secondary)]" />
+              <span className="flex-1 text-sm text-[var(--color-text-secondary)] text-left">Search products...</span>
+              <div className="w-px h-5 bg-[var(--color-border)]" />
+              <Gavel size={16} strokeWidth={2} className="text-[var(--color-text-secondary)]" />
+            </button>
+          )}
+        </div>
+
+        {/* Tag bar — only on home, hides on scroll up, shows on scroll down */}
+        {routeMeta.kind === 'home' && (
+          <div
+            className="max-w-7xl mx-auto px-3 overflow-hidden transition-all duration-300 ease-in-out"
+            style={{
+              maxHeight: tagBarVisible ? '60px' : '0px',
+              opacity: tagBarVisible ? 1 : 0,
+            }}
+          >
+            <ListingTypeBar selected={listingTypes} onChange={setListingTypes} />
+          </div>
+        )}
+
+        {/* Followed sellers bar — only on follow page */}
+        {routeMeta.key === 'follow' && (
+          <div
+            className="max-w-7xl mx-auto px-3 overflow-hidden transition-all duration-300 ease-in-out"
+            style={{
+              maxHeight: tagBarVisible ? '80px' : '0px',
+              opacity: tagBarVisible ? 1 : 0,
+            }}
+          >
+            <FollowedSellersBar />
+          </div>
+        )}
       </nav>
     )
   }
 
+  // Stack variant: back button + title + optional exit
   return (
     <nav
-      className="sticky top-0 z-50 bg-white"
+      className="sticky top-0 z-50 bg-[var(--color-bg)]"
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
-      <div className="max-w-7xl mx-auto px-6 h-14 flex items-center justify-between">
-        <Link to="/" className="text-xl font-bold tracking-[-0.04em] font-mono-accent">
-          UMBRA
-        </Link>
+      <div className="max-w-7xl mx-auto px-3 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-2">
+        <button
+          type="button"
+          onClick={goBack}
+          className="tap-feedback p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
+          aria-label="Go back"
+        >
+          <ArrowLeft size={20} strokeWidth={2} />
+        </button>
 
-        <div className="flex items-center gap-5">
-          <button className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors">
-            <Search size={22} strokeWidth={1.8} />
+        <span className="text-sm font-semibold text-center truncate">{routeMeta.title}</span>
+
+        {routeMeta.showExitButton ? (
+          <button
+            type="button"
+            onClick={exitToHome}
+            className="tap-feedback p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
+            aria-label="Exit to home"
+          >
+            <X size={20} strokeWidth={2} />
           </button>
-          <button className="p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors relative">
-            <Bell size={22} strokeWidth={1.8} />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-[var(--color-accent)] rounded-full" />
-          </button>
-        </div>
+        ) : (
+          <div className="w-8" />
+        )}
       </div>
     </nav>
   )

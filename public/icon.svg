@@ -1,4 +1,20 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#000"/>
-  <text x="256" y="340" font-family="monospace" font-size="280" font-weight="bold" fill="#CCFF00" text-anchor="middle">U</text>
+  <defs>
+    <linearGradient id="soulGreen" x1="124" y1="92" x2="392" y2="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E0FF5F" />
+      <stop offset="1" stop-color="#95FF0A" />
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="#050805" />
+  <g transform="translate(-6 0) translate(256 256) skewX(-8) translate(-256 -256)">
+    <path
+      d="M170 112H212V288C212 341 232 366 256 366C280 366 300 341 300 288V112H342V292C342 370 304 410 256 410C208 410 170 370 170 292V112Z"
+      fill="#0A1208"
+      transform="translate(10 8)"
+    />
+    <path
+      d="M170 112H212V288C212 341 232 366 256 366C280 366 300 341 300 288V112H342V292C342 370 304 410 256 410C208 410 170 370 170 292V112Z"
+      fill="url(#soulGreen)"
+    />
+  </g>
 </svg>

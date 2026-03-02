@@ -1,46 +1,75 @@
-import { Link, useLocation } from 'react-router-dom'
-import { Flame, Compass, PlusCircle, MessageCircle, User } from 'lucide-react'
+import { NavLink, useLocation } from 'react-router-dom'
+import { Flame, Users, PlusCircle, MessageCircle, User, type LucideIcon } from 'lucide-react'
+import { normalizePathname, tabItems } from '../navigation/routeMeta'
+import { APP_ROUTE_PATHS } from '../navigation/paths'
+import { lockScrollCapture, rememberScrollPosition, toScrollKey } from '../navigation/scrollMemory'
+import { useStore } from '../store/useStore'
 
-const tabs = [
-  { to: '/', label: 'My Feed', icon: Flame },
-  { to: '/discover', label: 'Discover', icon: Compass },
-  { to: '/sell', label: 'Sell', icon: PlusCircle },
-  { to: '/messages', label: 'Messages', icon: MessageCircle },
-  { to: '/profile', label: 'Profile', icon: User },
-]
+const iconByPath: Record<string, LucideIcon> = {
+  [APP_ROUTE_PATHS.home]: Flame,
+  [APP_ROUTE_PATHS.discover]: Users,
+  [APP_ROUTE_PATHS.sell]: PlusCircle,
+  [APP_ROUTE_PATHS.messages]: MessageCircle,
+  [APP_ROUTE_PATHS.profile]: User,
+}
+
+const tabs = tabItems
+  .map((item) => ({
+    ...item,
+    icon: iconByPath[item.to] ?? Flame,
+  }))
 
 export default function BottomNav() {
-  const { pathname } = useLocation()
+  const { pathname, search } = useLocation()
+  const activePath = normalizePathname(pathname)
+  const currentKey = toScrollKey(pathname, search)
+  const bottomNavHidden = useStore((s) => s.bottomNavHidden)
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-t border-[var(--color-border)]"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+      className="liquid-tabbar-shell fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out"
+      style={{
+        paddingBottom: 'var(--liquid-tabbar-offset)',
+        transform: bottomNavHidden ? 'translateY(100%)' : 'translateY(0)',
+      }}
     >
-      <div className="flex items-center justify-around h-14 max-w-lg mx-auto">
-        {tabs.map(({ to, label, icon: Icon }) => {
-          const active = to === '/' ? pathname === '/' : pathname.startsWith(to)
-          return (
-            <Link
-              key={to}
-              to={to}
-              className={`flex flex-col items-center justify-center gap-1 flex-1 h-full transition-colors ${
-                active ? 'text-[var(--color-text)]' : 'text-[var(--color-text-secondary)]'
-              }`}
-            >
-              {to === '/sell' ? (
-                <div className="w-10 h-10 rounded-full bg-[var(--color-accent)] flex items-center justify-center -mt-2 web3-glow">
-                  <Icon size={20} strokeWidth={2} className="text-black" />
-                </div>
-              ) : (
-                <Icon size={22} strokeWidth={active ? 2.2 : 1.5} />
-              )}
-              <span className={`text-[11px] leading-none ${active ? 'font-semibold' : 'font-normal'}`}>
-                {label}
-              </span>
-            </Link>
-          )
-        })}
+      <div className="relative z-10 max-w-lg mx-auto px-4">
+        <div className="liquid-tabbar pointer-events-auto rounded-full p-1.5">
+          <div className="grid grid-cols-5 gap-1">
+            {tabs.map(({ to, label, icon: Icon }) => {
+              const active = activePath === to
+              return (
+                <NavLink
+                  key={to}
+                  to={to}
+                  end
+                  style={active ? { color: '#081C00' } : undefined}
+                  onClick={(event) => {
+                    if (active) {
+                      event.preventDefault()
+                      rememberScrollPosition(currentKey, 0)
+                      window.scrollTo({ top: 0, left: 0, behavior: 'smooth' })
+                      return
+                    }
+
+                    rememberScrollPosition(currentKey, window.scrollY)
+                    lockScrollCapture()
+                  }}
+                  className={`tap-feedback flex min-h-[52px] flex-col items-center justify-center gap-1 rounded-full px-2 py-1.5 transition-all ${
+                    active
+                      ? 'liquid-tab-item-active'
+                      : 'text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
+                  }`}
+                >
+                  <Icon size={active ? 18 : 17} strokeWidth={active ? 2.2 : 1.8} />
+                  <span className={`text-[10px] leading-none ${active ? 'font-semibold' : 'font-medium'}`}>
+                    {label}
+                  </span>
+                </NavLink>
+              )
+            })}
+          </div>
+        </div>
       </div>
     </nav>
   )

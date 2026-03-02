@@ -1,0 +1,186 @@
+import { useState, useRef, useEffect } from 'react'
+import { useParams } from 'react-router-dom'
+import { Send, Package } from 'lucide-react'
+import type { Transaction } from './Messages'
+import { mockTransactions } from './Messages'
+import { useSwipeNavigation } from '../hooks/useSwipeNavigation'
+import { useSafeBack } from '../hooks/useSafeBack'
+import { APP_ROUTE_PATHS } from '../navigation/paths'
+
+interface ChatMessage {
+  id: string
+  from: 'them' | 'me' | 'system'
+  text: string
+  time: string
+}
+
+const statusLabel: Record<Transaction['status'], string> = {
+  pending: 'Pending',
+  paid: 'Paid',
+  shipped: 'Shipped',
+  delivered: 'Delivered',
+  disputed: 'Disputed',
+}
+
+const statusColor: Record<Transaction['status'], string> = {
+  pending: 'bg-yellow-100 text-yellow-700',
+  paid: 'bg-blue-100 text-blue-700',
+  shipped: 'bg-purple-100 text-purple-700',
+  delivered: 'bg-green-100 text-green-700',
+  disputed: 'bg-red-100 text-red-700',
+}
+
+const mockChatMessages: Record<string, ChatMessage[]> = {
+  '1': [
+    { id: 's1', from: 'system', text: 'Transaction created · ORD-0x3f7a', time: '09:58' },
+    { id: '1', from: 'them', text: 'Hey, I just paid for the hoodie!', time: '10:02' },
+    { id: '2', from: 'me', text: 'Got it, thanks!', time: '10:03' },
+    { id: '3', from: 'them', text: 'When can you ship?', time: '10:05' },
+  ],
+  '2': [
+    { id: 's1', from: 'system', text: 'Transaction created · ORD-0xb4d2', time: '09:25' },
+    { id: '1', from: 'me', text: 'Hi, I bought the cargo pants', time: '09:30' },
+    { id: '2', from: 'them', text: 'Great, I\'ll ship today', time: '09:31' },
+    { id: 's2', from: 'system', text: 'Order marked as shipped', time: '09:40' },
+    { id: '3', from: 'them', text: 'Tracking number: 9400111...', time: '09:45' },
+  ],
+  '3': [
+    { id: 's1', from: 'system', text: 'Transaction created · ORD-0x1c9e', time: '07:50' },
+    { id: '1', from: 'me', text: 'Shipped your order today', time: '08:00' },
+    { id: 's2', from: 'system', text: 'Order marked as delivered', time: '08:10' },
+    { id: '2', from: 'them', text: 'Thanks, received!', time: '08:15' },
+  ],
+}
+
+export default function ChatDetail() {
+  const { chatId } = useParams<{ chatId: string }>()
+  const tx = mockTransactions.find((t) => t.id === chatId)
+  const goBack = useSafeBack(APP_ROUTE_PATHS.messages)
+  const { swipeRef } = useSwipeNavigation({ onSwipeRight: goBack })
+  const [input, setInput] = useState('')
+  const [messages, setMessages] = useState<ChatMessage[]>(mockChatMessages[chatId || ''] || [])
+  const bottomRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages])
+
+  if (!tx) {
+    return (
+      <div className="flex items-center justify-center h-full py-20">
+        <p className="text-sm text-[var(--color-text-secondary)]">Conversation not found</p>
+      </div>
+    )
+  }
+
+  const handleSend = () => {
+    const trimmed = input.trim()
+    if (!trimmed) return
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: String(Date.now()),
+        from: 'me',
+        text: trimmed,
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      },
+    ])
+    setInput('')
+  }
+
+  return (
+    <div ref={swipeRef} className="flex flex-col h-full max-w-2xl mx-auto" data-allow-horizontal-swipe="true">
+      {/* Transaction context banner */}
+      <div className="px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0">
+            <img
+              src={tx.product.image}
+              alt={tx.product.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-1.5">
+              <Package size={12} className="text-[var(--color-text-secondary)] shrink-0" />
+              <span className="text-[11px] font-mono-accent text-[var(--color-text-secondary)]">
+                {tx.orderId}
+              </span>
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${statusColor[tx.status]}`}>
+                {statusLabel[tx.status]}
+              </span>
+            </div>
+            <p className="text-sm font-medium truncate mt-0.5">
+              {tx.product.name} · {tx.product.price}
+            </p>
+            <p className="text-[11px] text-[var(--color-text-secondary)]">
+              {tx.role === 'buyer' ? 'Seller' : 'Buyer'}: {tx.counterparty}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Messages area */}
+      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2.5">
+        {messages.map((msg) => {
+          if (msg.from === 'system') {
+            return (
+              <div key={msg.id} className="flex justify-center">
+                <span className="text-[10px] text-[var(--color-text-secondary)] bg-gray-100 px-3 py-1 rounded-full">
+                  {msg.text} · {msg.time}
+                </span>
+              </div>
+            )
+          }
+
+          return (
+            <div
+              key={msg.id}
+              className={`flex ${msg.from === 'me' ? 'justify-end' : 'justify-start'}`}
+            >
+              <div
+                className={`max-w-[75%] px-3.5 py-2.5 text-sm leading-relaxed ${
+                  msg.from === 'me'
+                    ? 'bg-[var(--color-text)] text-white rounded-2xl rounded-br-md'
+                    : 'bg-[#F2F2F2] text-[var(--color-text)] rounded-2xl rounded-bl-md'
+                }`}
+              >
+                <p>{msg.text}</p>
+                <p
+                  className={`text-[10px] mt-1 ${
+                    msg.from === 'me' ? 'text-white/50' : 'text-[var(--color-text-secondary)]'
+                  }`}
+                >
+                  {msg.time}
+                </p>
+              </div>
+            </div>
+          )
+        })}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input bar */}
+      <div className="border-t border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+        <div className="flex items-center gap-2">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+            placeholder="Type a message..."
+            className="flex-1 bg-[#F2F2F2] rounded-full px-4 py-2.5 text-sm outline-none placeholder:text-[var(--color-text-secondary)] focus:ring-1 focus:ring-[var(--color-accent)]"
+          />
+          <button
+            type="button"
+            onClick={handleSend}
+            disabled={!input.trim()}
+            className="tap-feedback w-10 h-10 rounded-full bg-[var(--color-text)] flex items-center justify-center shrink-0 disabled:opacity-30 transition-opacity"
+          >
+            <Send size={16} className="text-white ml-0.5" />
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}

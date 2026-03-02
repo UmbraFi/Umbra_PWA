@@ -1,10 +1,11 @@
 import { useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { ArrowLeft, MessageCircle, UserPlus, Star, Shield } from 'lucide-react'
+import { MessageCircle, UserCheck, UserPlus, Star, Shield } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { useSwipeNavigation } from '../hooks/useSwipeNavigation'
+import { useSafeBack } from '../hooks/useSafeBack'
 import ProductCard from '../components/ProductCard'
+import { APP_ROUTE_PATHS } from '../navigation/paths'
 
 /** Derive a deterministic number from a string so mock stats stay stable. */
 function hashCode(s: string) {
@@ -16,7 +17,10 @@ function hashCode(s: string) {
 export default function SellerProfile() {
   const { sellerId } = useParams<{ sellerId: string }>()
   const navigate = useNavigate()
+  const goBack = useSafeBack(APP_ROUTE_PATHS.home)
   const products = useStore((s) => s.products)
+  const followedSellers = useStore((s) => s.followedSellers)
+  const toggleFollowSeller = useStore((s) => s.toggleFollowSeller)
 
   const sellerProducts = useMemo(
     () => products.filter((p) => p.seller === sellerId),
@@ -24,6 +28,7 @@ export default function SellerProfile() {
   )
 
   const displayName = sellerId ?? 'Unknown'
+  const isFollowing = sellerId ? followedSellers.includes(displayName) : false
 
   // Deterministic mock stats based on seller address
   const stats = useMemo(() => {
@@ -40,29 +45,18 @@ export default function SellerProfile() {
     [sellerProducts],
   )
 
-  const swipeHandlers = useSwipeNavigation({
-    onSwipeRight: () => navigate(-1),
+  const { swipeRef } = useSwipeNavigation({
+    onSwipeRight: goBack,
   })
 
   return (
-    <div className="max-w-lg mx-auto" {...swipeHandlers}>
-      {/* Top Bar */}
-      <div className="flex items-center gap-3 py-3">
-        <button onClick={() => navigate(-1)} className="p-2 -ml-2">
-          <ArrowLeft size={22} />
-        </button>
-        <span className="text-sm font-medium font-mono-accent truncate">
-          {displayName}
-        </span>
-      </div>
-
+    <div
+      ref={swipeRef}
+      className="max-w-lg mx-auto pt-3"
+      data-allow-horizontal-swipe="true"
+    >
       {/* Profile Header */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3 }}
-        className="flex flex-col items-center pt-2 pb-5"
-      >
+      <div className="flex flex-col items-center pt-2 pb-5">
         <div className="w-[72px] h-[72px] rounded-full bg-gray-100 flex items-center justify-center mb-3 ring-2 ring-[var(--color-border)]">
           <span className="text-xl font-mono-accent font-bold text-[var(--color-text-secondary)]">
             {displayName.slice(0, 2)}
@@ -75,17 +69,17 @@ export default function SellerProfile() {
             Joined {stats.joined}
           </span>
         </div>
-      </motion.div>
+      </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 border-y border-[var(--color-border)]">
+      <div className="grid grid-cols-4 gap-2">
         {[
           { value: sellerProducts.length, label: 'Listings' },
           { value: stats.sales, label: 'Sales' },
           { value: `${totalVolume}`, label: 'Vol (SOL)' },
           { value: stats.rating, label: 'Rating' },
         ].map(({ value, label }) => (
-          <div key={label} className="py-3.5 text-center">
+          <div key={label} className="py-3 text-center rounded-xl bg-gray-50">
             <p className="text-base font-semibold font-mono-accent">{value}</p>
             <p className="text-[10px] text-[var(--color-text-secondary)] uppercase tracking-wide mt-0.5">
               {label}
@@ -114,13 +108,22 @@ export default function SellerProfile() {
 
       {/* Action Buttons */}
       <div className="flex gap-2 px-1">
-        <button className="btn-primary flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2">
-          <UserPlus size={15} strokeWidth={2} />
-          Follow
+        <button
+          type="button"
+          onClick={() => {
+            if (sellerId) toggleFollowSeller(displayName)
+          }}
+          className={`tap-feedback flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 ${
+            isFollowing ? 'btn-outline' : 'btn-primary'
+          }`}
+        >
+          {isFollowing ? <UserCheck size={15} strokeWidth={2} /> : <UserPlus size={15} strokeWidth={2} />}
+          {isFollowing ? 'Following' : 'Follow'}
         </button>
         <button
-          onClick={() => navigate('/messages')}
-          className="btn-outline flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2"
+          type="button"
+          onClick={() => navigate(APP_ROUTE_PATHS.messages)}
+          className="btn-outline tap-feedback flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2"
         >
           <MessageCircle size={15} strokeWidth={2} />
           Message
@@ -128,7 +131,7 @@ export default function SellerProfile() {
       </div>
 
       {/* Listings */}
-      <div className="mt-6 border-t border-[var(--color-border)] pt-4">
+      <div className="mt-6">
         <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide mb-3">
           Listings
         </p>
@@ -138,15 +141,10 @@ export default function SellerProfile() {
           </p>
         ) : (
           <div className="grid grid-cols-2 gap-3 pb-6">
-            {sellerProducts.map((p, i) => (
-              <motion.div
-                key={p.id}
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.3 }}
-              >
+            {sellerProducts.map((p) => (
+              <div key={p.id}>
                 <ProductCard product={p} />
-              </motion.div>
+              </div>
             ))}
           </div>
         )}

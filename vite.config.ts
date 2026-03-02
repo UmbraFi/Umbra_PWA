@@ -5,6 +5,9 @@ import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  },
   build: {
     cssTarget: 'safari13',
   },
@@ -19,6 +22,7 @@ export default defineConfig({
     VitePWA({
       injectRegister: null,
       registerType: 'autoUpdate',
+      manifestFilename: 'umbrafi.webmanifest',
       includeAssets: ['icon.svg', 'apple-touch-icon-180x180.png'],
       workbox: {
         cleanupOutdatedCaches: true,
@@ -46,15 +50,15 @@ export default defineConfig({
         ],
       },
       manifest: {
-        id: '/',
-        name: 'Umbra - Decentralized Marketplace',
-        short_name: 'Umbra',
+        id: '/umbrafi',
+        name: 'UmbraFi',
+        short_name: 'UmbraFi',
         description: 'Decentralized Web3 Marketplace',
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
-        start_url: './',
-        scope: './',
+        start_url: '/',
+        scope: '/',
         icons: [
           {
             src: 'pwa-192x192.png',

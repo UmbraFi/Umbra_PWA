@@ -1,13 +1,20 @@
+import { Buffer } from 'buffer'
+;(globalThis as any).Buffer = Buffer
+
 import { StrictMode, useEffect } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App'
+import { isGhostClickGuardActive } from './navigation/ghostClickGuard'
 
 // Keep the PWA fixed at 1x scale across touch and trackpad gestures.
 const preventBrowserZoom = () => {
   const canScrollHorizontally = (target: EventTarget | null) => {
     let element = target instanceof Element ? target : null
     while (element) {
+      if (element instanceof HTMLElement && element.dataset.allowHorizontalSwipe === 'true') {
+        return true
+      }
       const style = window.getComputedStyle(element)
       const overflowX = style.overflowX
       const isHorizontalScroller =
@@ -77,6 +84,23 @@ const preventBrowserZoom = () => {
 }
 
 preventBrowserZoom()
+
+const installGhostClickBlocker = () => {
+  const blockGhostEvent = (event: Event) => {
+    if (!isGhostClickGuardActive()) return
+    event.preventDefault()
+    event.stopPropagation()
+    if ('stopImmediatePropagation' in event) {
+      event.stopImmediatePropagation()
+    }
+  }
+
+  document.addEventListener('click', blockGhostEvent, true)
+  document.addEventListener('touchend', blockGhostEvent, true)
+  document.addEventListener('pointerup', blockGhostEvent, true)
+}
+
+installGhostClickBlocker()
 
 const registerServiceWorker = () => {
   // iOS over local IP runs on insecure HTTP context, where SW registration is unreliable.

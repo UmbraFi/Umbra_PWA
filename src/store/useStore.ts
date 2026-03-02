@@ -1,5 +1,7 @@
 import { create } from 'zustand'
-import { mockProducts, type Product } from '../data/mockProducts'
+import { mockProducts, type FeedType, type Product } from '../data/mockProducts'
+
+export type SortMode = 'Default Ranking' | 'Seller Reputation' | 'Product Quality'
 
 interface CartItem {
   product: Product
@@ -10,26 +12,113 @@ interface Store {
   products: Product[]
   cart: CartItem[]
   searchQuery: string
-  selectedCategory: string
+  sortMode: SortMode
+  minPrice: number | null
+  maxPrice: number | null
+  shipFromCountries: string[]
+  deliverToCountries: string[]
+  selectedFeedTypes: FeedType[]
+  followedSellers: string[]
+  selectedFollowedSellers: string[]
   isRefreshing: boolean
+  isDiscoverPanelOpen: boolean
+  bottomNavHidden: boolean
   setSearchQuery: (query: string) => void
-  setSelectedCategory: (category: string) => void
+  setDiscoverPanelOpen: (isOpen: boolean) => void
+  setBottomNavHidden: (hidden: boolean) => void
+  setSortMode: (mode: SortMode) => void
+  setPriceRange: (min: number | null, max: number | null) => void
+  toggleShipFromCountry: (country: string) => void
+  toggleDeliverToCountry: (country: string) => void
+  setSelectedFeedTypes: (feedTypes: FeedType[]) => void
+  toggleSelectedFollowedSeller: (seller: string) => void
+  clearSelectedFollowedSellers: () => void
+  toggleFollowSeller: (seller: string) => void
+  clearDiscoverFilters: () => void
   addToCart: (product: Product) => void
-  removeFromCart: (productId: string) => void
-  clearCart: () => void
   getFilteredProducts: () => Product[]
   refreshProducts: () => Promise<void>
 }
+
+const toggleCountrySelection = (list: string[], country: string) =>
+  list.includes(country)
+    ? list.filter((item) => item !== country)
+    : [...list, country]
+
+const getComprehensiveScore = (product: Product) => {
+  const valueScore = Math.max(0, 100 - product.price * 20)
+  return product.sellerReputation * 0.45 + product.qualityScore * 0.45 + valueScore * 0.1
+}
+
+const defaultFollowedSellers = ['7xKz...9fRm', '4pQw...2nXk', '6jNr...1aDe', '8hFg...7mWx', '5wAe...0pLj']
 
 export const useStore = create<Store>()((set, get) => ({
   products: mockProducts,
   cart: [],
   searchQuery: '',
-  selectedCategory: 'All',
+  sortMode: 'Default Ranking',
+  minPrice: null,
+  maxPrice: null,
+  shipFromCountries: [],
+  deliverToCountries: [],
+  selectedFeedTypes: [],
+  followedSellers: defaultFollowedSellers,
+  selectedFollowedSellers: [],
   isRefreshing: false,
+  isDiscoverPanelOpen: false,
+  bottomNavHidden: false,
 
   setSearchQuery: (query) => set({ searchQuery: query }),
-  setSelectedCategory: (category) => set({ selectedCategory: category }),
+  setDiscoverPanelOpen: (isOpen) => set({ isDiscoverPanelOpen: isOpen }),
+  setBottomNavHidden: (hidden) => set({ bottomNavHidden: hidden }),
+  setSortMode: (mode) => set({ sortMode: mode }),
+  setPriceRange: (min, max) => {
+    const normalizedMin = min !== null && min >= 0 ? min : null
+    const normalizedMax = max !== null && max >= 0 ? max : null
+
+    if (
+      normalizedMin !== null &&
+      normalizedMax !== null &&
+      normalizedMin > normalizedMax
+    ) {
+      set({ minPrice: normalizedMax, maxPrice: normalizedMin })
+      return
+    }
+
+    set({ minPrice: normalizedMin, maxPrice: normalizedMax })
+  },
+  toggleShipFromCountry: (country) =>
+    set((state) => ({
+      shipFromCountries: toggleCountrySelection(state.shipFromCountries, country),
+    })),
+  toggleDeliverToCountry: (country) =>
+    set((state) => ({
+      deliverToCountries: toggleCountrySelection(state.deliverToCountries, country),
+    })),
+  setSelectedFeedTypes: (feedTypes) =>
+    set({
+      selectedFeedTypes: [...new Set(feedTypes)],
+    }),
+  toggleSelectedFollowedSeller: (seller) =>
+    set((state) => ({
+      selectedFollowedSellers: state.selectedFollowedSellers.includes(seller)
+        ? state.selectedFollowedSellers.filter((s) => s !== seller)
+        : [...state.selectedFollowedSellers, seller],
+    })),
+  clearSelectedFollowedSellers: () => set({ selectedFollowedSellers: [] }),
+  toggleFollowSeller: (seller) =>
+    set((state) => ({
+      followedSellers: toggleCountrySelection(state.followedSellers, seller),
+      selectedFollowedSellers: state.selectedFollowedSellers.filter((s) => s !== seller),
+    })),
+  clearDiscoverFilters: () =>
+    set({
+      sortMode: 'Default Ranking',
+      minPrice: null,
+      maxPrice: null,
+      shipFromCountries: [],
+      deliverToCountries: [],
+    }),
 
   addToCart: (product) =>
     set((state) => {
@@ -39,19 +128,12 @@ export const useStore = create<Store>()((set, get) => ({
           cart: state.cart.map((item) =>
             item.product.id === product.id
               ? { ...item, quantity: item.quantity + 1 }
-              : item
+              : item,
           ),
         }
       }
       return { cart: [...state.cart, { product, quantity: 1 }] }
     }),
-
-  removeFromCart: (productId) =>
-    set((state) => ({
-      cart: state.cart.filter((item) => item.product.id !== productId),
-    })),
-
-  clearCart: () => set({ cart: [] }),
 
   refreshProducts: async () => {
     set({ isRefreshing: true })
@@ -63,15 +145,67 @@ export const useStore = create<Store>()((set, get) => ({
   },
 
   getFilteredProducts: () => {
-    const { products, searchQuery, selectedCategory } = get()
-    return products.filter((p) => {
+    const {
+      products,
+      searchQuery,
+      sortMode,
+      minPrice,
+      maxPrice,
+      shipFromCountries,
+      deliverToCountries,
+    } = get()
+    const normalizedQuery = searchQuery.trim().toLowerCase()
+
+    const filtered = products.filter((product) => {
       const matchesSearch =
-        !searchQuery ||
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.brand.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesCategory =
-        selectedCategory === 'All' || p.category === selectedCategory
-      return matchesSearch && matchesCategory
+        !normalizedQuery ||
+        product.name.toLowerCase().includes(normalizedQuery) ||
+        product.brand.toLowerCase().includes(normalizedQuery)
+
+      const matchesPrice =
+        (minPrice === null || product.price >= minPrice) &&
+        (maxPrice === null || product.price <= maxPrice)
+
+      const matchesShipFrom =
+        shipFromCountries.length === 0 ||
+        shipFromCountries.includes(product.shipFromCountry)
+
+      const matchesDeliverTo =
+        deliverToCountries.length === 0 ||
+        deliverToCountries.some((country) =>
+          product.deliverableCountries.includes(country),
+        )
+
+      return (
+        matchesSearch &&
+        matchesPrice &&
+        matchesShipFrom &&
+        matchesDeliverTo
+      )
+    })
+
+    return filtered.sort((a, b) => {
+      if (sortMode === 'Seller Reputation') {
+        return (
+          b.sellerReputation - a.sellerReputation ||
+          b.qualityScore - a.qualityScore ||
+          a.price - b.price
+        )
+      }
+
+      if (sortMode === 'Product Quality') {
+        return (
+          b.qualityScore - a.qualityScore ||
+          b.sellerReputation - a.sellerReputation ||
+          a.price - b.price
+        )
+      }
+
+      return (
+        getComprehensiveScore(b) - getComprehensiveScore(a) ||
+        b.qualityScore - a.qualityScore ||
+        a.price - b.price
+      )
     })
   },
 }))

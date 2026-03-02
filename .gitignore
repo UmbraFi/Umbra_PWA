@@ -4,5 +4,6 @@ dev-dist/
 .vite/
 *.tsbuildinfo
 .tmp-*.png
+tmp-*.png
 .DS_Store
 Thumbs.db
