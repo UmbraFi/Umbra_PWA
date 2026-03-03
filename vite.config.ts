@@ -6,6 +6,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import basicSsl from '@vitejs/plugin-basic-ssl'
 
 export default defineConfig({
+  base: '/Umbra_PWA/',
   resolve: {
     dedupe: ['react', 'react-dom'],
   },
@@ -55,7 +56,7 @@ export default defineConfig({
         ],
       },
       manifest: {
-        id: '/umbrafi',
+        id: '/Umbra_PWA/',
         name: 'UmbraFi',
         short_name: 'UmbraFi',
         description: 'Decentralized Web3 Marketplace',
@@ -63,8 +64,8 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         display_override: ['standalone', 'minimal-ui'],
-        start_url: '/',
-        scope: '/',
+        start_url: '/Umbra_PWA/',
+        scope: '/Umbra_PWA/',
         icons: [
           {
             src: 'pwa-192x192.png',
