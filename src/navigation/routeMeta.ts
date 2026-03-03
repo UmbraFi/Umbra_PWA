@@ -48,7 +48,7 @@ const TAB_ROUTES: Record<string, RouteMeta> = {
     kind: 'tab',
     showBottomNav: true,
     showExitButton: false,
-    showNavbar: false,
+    showNavbar: true,
   },
   [APP_ROUTE_PATHS.messages]: {
     key: 'messages',
@@ -56,7 +56,7 @@ const TAB_ROUTES: Record<string, RouteMeta> = {
     kind: 'tab',
     showBottomNav: true,
     showExitButton: false,
-    showNavbar: false,
+    showNavbar: true,
   },
   [APP_ROUTE_PATHS.profile]: {
     key: 'profile',
@@ -69,6 +69,14 @@ const TAB_ROUTES: Record<string, RouteMeta> = {
 }
 
 const STACK_ROUTES: Record<string, RouteMeta> = {
+  [APP_ROUTE_PATHS.cart]: {
+    key: 'cart',
+    title: 'Cart',
+    kind: 'stack',
+    showBottomNav: false,
+    showExitButton: true,
+    showNavbar: false,
+  },
   [APP_ROUTE_PATHS.feedTags]: {
     key: 'feed-tags',
     title: 'Tag Filters',

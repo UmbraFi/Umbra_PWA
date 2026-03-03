@@ -1,4 +1,4 @@
-import { useRef, useCallback, useEffect, type RefCallback } from 'react'
+import { useRef, useEffect } from 'react'
 
 interface SwipeHandlers {
   onSwipeLeft?: () => void
@@ -32,7 +32,6 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight }: SwipeHandlers)
   const directionLocked = useRef(false)
   const isHorizontal = useRef(false)
   const isEdgeSwipe = useRef(false)
-  const elRef = useRef<HTMLElement | null>(null)
   const rafId = useRef(0)
   const callbacksRef = useRef({ onSwipeLeft, onSwipeRight })
   callbacksRef.current = { onSwipeLeft, onSwipeRight }
@@ -246,9 +245,4 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight }: SwipeHandlers)
     }
   }, [])
 
-  const setRef: RefCallback<HTMLElement> = useCallback((node) => {
-    elRef.current = node
-  }, [])
-
-  return { swipeRef: setRef }
 }

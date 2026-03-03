@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { memo, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, Filter, Search } from 'lucide-react'
 import { type SortMode, useStore } from '../store/useStore'
 
@@ -7,10 +7,10 @@ const sortOptions: SortMode[] = ['Default Ranking', 'Seller Reputation', 'Produc
 type PanelKey = 'sort' | 'price' | 'shipFrom' | 'deliverTo'
 
 const getTriggerClass = (isActive: boolean) =>
-  `shrink-0 px-3 py-2 rounded-full text-xs font-medium transition-colors border ${
+  `shrink-0 py-1 text-xs transition-colors ${
     isActive
-      ? 'border-[var(--color-accent-50)] bg-[var(--color-accent-50)] text-[var(--color-text)]'
-      : 'border-gray-200 bg-white text-[var(--color-text)] hover:border-gray-300'
+      ? 'font-semibold text-[var(--color-text)]'
+      : 'font-medium text-[var(--color-text-secondary)] hover:text-[var(--color-text)]'
   }`
 
 const getOptionClass = (isActive: boolean) =>
@@ -44,7 +44,7 @@ interface DiscoverControlsProps {
   autoFocusInput?: boolean
 }
 
-export default function DiscoverControls({
+const DiscoverControls = memo(function DiscoverControls({
   className,
   autoFocusInput = false,
 }: DiscoverControlsProps) {
@@ -125,7 +125,7 @@ export default function DiscoverControls({
 
   return (
     <div className={className}>
-      <div className="pt-4 pb-3">
+      <div className="pt-1.5 pb-1">
         <form onSubmit={(e) => e.preventDefault()} className="relative">
           <Search
             size={18}
@@ -138,13 +138,13 @@ export default function DiscoverControls({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search items, brands..."
-            className="w-full pl-10 pr-4 py-2.5 text-sm bg-gray-100 rounded-lg border-none focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)]"
+            className="w-full pl-10 pr-4 py-2 text-sm bg-gray-100 rounded-lg border-none focus:outline-none focus:ring-1 focus:ring-[var(--color-border-strong)]"
           />
         </form>
       </div>
 
-      <div className="pb-4">
-        <div className="flex items-center justify-between pb-2">
+      <div className="pb-1">
+        <div className="flex items-center justify-between pb-1">
           <p className="text-xs text-[var(--color-text-secondary)] flex items-center gap-1.5">
             <Filter size={12} />
             Filters
@@ -160,7 +160,7 @@ export default function DiscoverControls({
           )}
         </div>
 
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex gap-3 overflow-x-auto">
           <button
             type="button"
             onClick={() => togglePanel('sort')}
@@ -297,4 +297,6 @@ export default function DiscoverControls({
       </div>
     </div>
   )
-}
+})
+
+export default DiscoverControls

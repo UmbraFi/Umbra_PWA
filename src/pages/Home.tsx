@@ -113,14 +113,9 @@ export default function Home() {
                 .map((product, i) => {
                   const origIndex = i * 2 + col
                   return (
-                    <motion.div
-                      key={product.id}
-                      initial={{ opacity: 0, y: 16 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: origIndex * 0.04, duration: 0.3 }}
-                    >
+                    <div key={product.id}>
                       <ProductCard product={product} variant={origIndex % 3 === 0 ? 'tall' : 'normal'} />
-                    </motion.div>
+                    </div>
                   )
                 })}
             </div>

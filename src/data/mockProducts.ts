@@ -202,20 +202,27 @@ const seededRandom = (seed: number) => {
   return x - Math.floor(x)
 }
 
-export const mockProducts: Product[] = productData.map((p, i) => {
-  const seed = i + 1
-  const sellerIdx = Math.floor(seededRandom(seed) * sellers.length)
-  const shipCountryIdx = Math.floor(seededRandom(seed + 100) * countries.length)
-  const shipFrom = countries[shipCountryIdx]
+let _mockProducts: Product[] | null = null
 
-  return {
-    ...p,
-    id: String(i + 1),
-    seller: sellers[sellerIdx],
-    listedAt: hoursAgo(Math.floor(seededRandom(seed + 200) * 168) + 1),
-    sellerReputation: 70 + Math.floor(seededRandom(seed + 300) * 25),
-    qualityScore: 70 + Math.floor(seededRandom(seed + 400) * 28),
-    shipFromCountry: shipFrom,
-    deliverableCountries: deliverable(shipFrom),
-  }
-})
+export function getMockProducts(): Product[] {
+  if (_mockProducts) return _mockProducts
+  _mockProducts = productData.map((p, i) => {
+    const seed = i + 1
+    const sellerIdx = Math.floor(seededRandom(seed) * sellers.length)
+    const shipCountryIdx = Math.floor(seededRandom(seed + 100) * countries.length)
+    const shipFrom = countries[shipCountryIdx]
+
+    return {
+      ...p,
+      id: String(i + 1),
+      seller: sellers[sellerIdx],
+      listedAt: hoursAgo(Math.floor(seededRandom(seed + 200) * 168) + 1),
+      sellerReputation: 70 + Math.floor(seededRandom(seed + 300) * 25),
+      qualityScore: 70 + Math.floor(seededRandom(seed + 400) * 28),
+      shipFromCountry: shipFrom,
+      deliverableCountries: deliverable(shipFrom),
+    }
+  })
+  return _mockProducts
+}
+

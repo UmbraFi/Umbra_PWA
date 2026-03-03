@@ -1,4 +1,5 @@
 import { useWalletStore } from '../store/useWalletStore'
+import { verifyBiometric } from '../services/walletCrypto'
 
 export function useWallet() {
   const store = useWalletStore()
@@ -23,5 +24,7 @@ export function useWallet() {
     disconnect: store.disconnect,
     acknowledgeMnemonic: store.acknowledgeMnemonic,
     hasExistingWallet: store.hasWallet(),
+    getDecryptedMnemonic: store.getDecryptedMnemonic,
+    verifyBiometric,
   }
 }

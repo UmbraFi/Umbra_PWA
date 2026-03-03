@@ -27,11 +27,33 @@ const SOLANA_PATH = [44, 501, 0, 0]
 // ---------------------------------------------------------------------------
 
 async function hmacSha512(key: Uint8Array, data: Uint8Array): Promise<Uint8Array> {
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw', key as any, { name: 'HMAC', hash: 'SHA-512' }, false, ['sign'],
-  )
-  const sig = await crypto.subtle.sign('HMAC', cryptoKey, data as any)
-  return new Uint8Array(sig)
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    const cryptoKey = await crypto.subtle.importKey(
+      'raw', key as any, { name: 'HMAC', hash: 'SHA-512' }, false, ['sign'],
+    )
+    const sig = await crypto.subtle.sign('HMAC', cryptoKey, data as any)
+    return new Uint8Array(sig)
+  }
+  // Fallback: use nacl.hash (SHA-512) as a simple HMAC approximation
+  // HMAC = H((key ^ opad) || H((key ^ ipad) || data))
+  const blockSize = 128
+  let k = key.length > blockSize ? nacl.hash(key) : key
+  const padded = new Uint8Array(blockSize)
+  padded.set(k)
+  const ipad = new Uint8Array(blockSize)
+  const opad = new Uint8Array(blockSize)
+  for (let i = 0; i < blockSize; i++) {
+    ipad[i] = padded[i] ^ 0x36
+    opad[i] = padded[i] ^ 0x5c
+  }
+  const inner = new Uint8Array(blockSize + data.length)
+  inner.set(ipad)
+  inner.set(data, blockSize)
+  const innerHash = nacl.hash(inner)
+  const outer = new Uint8Array(blockSize + innerHash.length)
+  outer.set(opad)
+  outer.set(innerHash, blockSize)
+  return nacl.hash(outer)
 }
 
 async function slip0010Derive(seed: Uint8Array, path: number[]): Promise<Uint8Array> {
@@ -90,24 +112,30 @@ export function importFromPrivateKey(base58Key: string) {
 // Biometric verification (FaceID / fingerprint)
 // ---------------------------------------------------------------------------
 
-export function isWebAuthnAvailable(): boolean {
+const BIOMETRIC_CRED_KEY = 'umbra_biometric_cred'
+
+function isWebAuthnAvailable(): boolean {
   return (
     typeof window !== 'undefined' &&
+    !!window.isSecureContext &&
     !!window.PublicKeyCredential &&
     !!navigator.credentials?.create
   )
 }
 
-export async function verifyBiometric(): Promise<void> {
-  if (!isWebAuthnAvailable()) return
-
+/**
+ * Register a platform authenticator credential (Face ID / fingerprint).
+ * Called once; the credential ID is stored for future authentication.
+ */
+async function registerBiometric(): Promise<Uint8Array> {
+  const userId = crypto.getRandomValues(new Uint8Array(16))
   const credential = await navigator.credentials.create({
     publicKey: {
-      rp: { name: 'Umbra', id: window.location.hostname },
+      rp: { name: 'Umbra' },
       user: {
-        id: crypto.getRandomValues(new Uint8Array(16)),
-        name: 'biometric-check',
-        displayName: 'Biometric Check',
+        id: userId,
+        name: 'umbra-user',
+        displayName: 'Umbra User',
       },
       challenge: crypto.getRandomValues(new Uint8Array(32)),
       pubKeyCredParams: [
@@ -116,13 +144,67 @@ export async function verifyBiometric(): Promise<void> {
       ],
       authenticatorSelection: {
         authenticatorAttachment: 'platform',
-        residentKey: 'discouraged',
+        residentKey: 'preferred',
         userVerification: 'required',
       },
+      attestation: 'none',
+      timeout: 60000,
     },
   })
+  if (!credential) throw new Error('Biometric registration cancelled')
+  const rawId = new Uint8Array((credential as PublicKeyCredential).rawId)
+  localStorage.setItem(BIOMETRIC_CRED_KEY, uint8ToBase64(rawId))
+  return rawId
+}
 
-  if (!credential) throw new Error('Biometric verification cancelled')
+/**
+ * Authenticate with a previously registered credential (Face ID / fingerprint).
+ */
+async function authenticateBiometric(credId: Uint8Array): Promise<void> {
+  const assertion = await navigator.credentials.get({
+    publicKey: {
+      challenge: crypto.getRandomValues(new Uint8Array(32)),
+      allowCredentials: [{ id: credId as any, type: 'public-key', transports: ['internal'] }],
+      userVerification: 'required',
+      timeout: 60000,
+    },
+  })
+  if (!assertion) throw new Error('Biometric verification cancelled')
+}
+
+/**
+ * Verify biometric identity. Registers on first use, authenticates after.
+ */
+/**
+ * Returns true if biometric verification is fully supported
+ * (secure context + WebAuthn + real domain, not IP address).
+ */
+export function isBiometricSupported(): boolean {
+  if (!isWebAuthnAvailable()) return false
+  // WebAuthn rp.id requires a valid domain — IP addresses are rejected
+  const h = window.location.hostname
+  if (/^\d+\.\d+\.\d+\.\d+$/.test(h) || h.includes(':')) return false
+  return true
+}
+
+/**
+ * Verify biometric identity. Registers on first use, authenticates after.
+ * Silently skips if biometric is not supported (dev over IP, no hardware, etc).
+ */
+export async function verifyBiometric(): Promise<void> {
+  if (!isBiometricSupported()) return
+
+  const stored = localStorage.getItem(BIOMETRIC_CRED_KEY)
+  if (stored) {
+    try {
+      await authenticateBiometric(base64ToUint8(stored))
+      return
+    } catch {
+      localStorage.removeItem(BIOMETRIC_CRED_KEY)
+    }
+  }
+
+  await registerBiometric()
 }
 
 // ---------------------------------------------------------------------------
@@ -160,15 +242,6 @@ export function encryptMnemonic(
   encKey: Uint8Array,
 ): { nonce: string; ciphertext: string } {
   return encryptData(new TextEncoder().encode(mnemonic), encKey)
-}
-
-export function decryptMnemonic(
-  nonce: string,
-  ciphertext: string,
-  encKey: Uint8Array,
-): string {
-  const bytes = decryptData(nonce, ciphertext, encKey)
-  return new TextDecoder().decode(bytes)
 }
 
 // ---------------------------------------------------------------------------

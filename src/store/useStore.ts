@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { mockProducts, type FeedType, type Product } from '../data/mockProducts'
+import { getMockProducts, type FeedType, type Product } from '../data/mockProducts'
 
 export type SortMode = 'Default Ranking' | 'Seller Reputation' | 'Product Quality'
 
@@ -36,14 +36,16 @@ interface Store {
   toggleFollowSeller: (seller: string) => void
   clearDiscoverFilters: () => void
   addToCart: (product: Product) => void
+  removeFromCart: (productId: string) => void
+  updateCartQuantity: (productId: string, quantity: number) => void
   getFilteredProducts: () => Product[]
   refreshProducts: () => Promise<void>
 }
 
-const toggleCountrySelection = (list: string[], country: string) =>
-  list.includes(country)
-    ? list.filter((item) => item !== country)
-    : [...list, country]
+const toggleInList = (list: string[], item: string) =>
+  list.includes(item)
+    ? list.filter((existing) => existing !== item)
+    : [...list, item]
 
 const getComprehensiveScore = (product: Product) => {
   const valueScore = Math.max(0, 100 - product.price * 20)
@@ -53,7 +55,7 @@ const getComprehensiveScore = (product: Product) => {
 const defaultFollowedSellers = ['7xKz...9fRm', '4pQw...2nXk', '6jNr...1aDe', '8hFg...7mWx', '5wAe...0pLj']
 
 export const useStore = create<Store>()((set, get) => ({
-  products: mockProducts,
+  products: getMockProducts(),
   cart: [],
   searchQuery: '',
   sortMode: 'Default Ranking',
@@ -89,11 +91,11 @@ export const useStore = create<Store>()((set, get) => ({
   },
   toggleShipFromCountry: (country) =>
     set((state) => ({
-      shipFromCountries: toggleCountrySelection(state.shipFromCountries, country),
+      shipFromCountries: toggleInList(state.shipFromCountries, country),
     })),
   toggleDeliverToCountry: (country) =>
     set((state) => ({
-      deliverToCountries: toggleCountrySelection(state.deliverToCountries, country),
+      deliverToCountries: toggleInList(state.deliverToCountries, country),
     })),
   setSelectedFeedTypes: (feedTypes) =>
     set({
@@ -108,7 +110,7 @@ export const useStore = create<Store>()((set, get) => ({
   clearSelectedFollowedSellers: () => set({ selectedFollowedSellers: [] }),
   toggleFollowSeller: (seller) =>
     set((state) => ({
-      followedSellers: toggleCountrySelection(state.followedSellers, seller),
+      followedSellers: toggleInList(state.followedSellers, seller),
       selectedFollowedSellers: state.selectedFollowedSellers.filter((s) => s !== seller),
     })),
   clearDiscoverFilters: () =>
@@ -134,6 +136,20 @@ export const useStore = create<Store>()((set, get) => ({
       }
       return { cart: [...state.cart, { product, quantity: 1 }] }
     }),
+
+  removeFromCart: (productId) =>
+    set((state) => ({
+      cart: state.cart.filter((item) => item.product.id !== productId),
+    })),
+
+  updateCartQuantity: (productId, quantity) =>
+    set((state) => ({
+      cart: quantity <= 0
+        ? state.cart.filter((item) => item.product.id !== productId)
+        : state.cart.map((item) =>
+            item.product.id === productId ? { ...item, quantity } : item,
+          ),
+    })),
 
   refreshProducts: async () => {
     set({ isRefreshing: true })

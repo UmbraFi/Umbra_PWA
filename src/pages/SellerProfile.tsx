@@ -45,13 +45,12 @@ export default function SellerProfile() {
     [sellerProducts],
   )
 
-  const { swipeRef } = useSwipeNavigation({
+  useSwipeNavigation({
     onSwipeRight: goBack,
   })
 
   return (
     <div
-      ref={swipeRef}
       className="max-w-lg mx-auto pt-3"
       data-allow-horizontal-swipe="true"
     >

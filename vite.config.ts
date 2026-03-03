@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import legacy from '@vitejs/plugin-legacy'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import basicSsl from '@vitejs/plugin-basic-ssl'
 
 export default defineConfig({
   resolve: {
@@ -11,7 +12,11 @@ export default defineConfig({
   build: {
     cssTarget: 'safari13',
   },
+  server: {
+    host: true,
+  },
   plugins: [
+    basicSsl(),
     react(),
     legacy({
       // iOS home-screen web apps can run older WebKit builds than Safari tab mode.
@@ -57,6 +62,7 @@ export default defineConfig({
         theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
+        display_override: ['standalone', 'minimal-ui'],
         start_url: '/',
         scope: '/',
         icons: [

@@ -45,6 +45,7 @@ export default function BottomNav() {
                   end
                   style={active ? { color: '#081C00' } : undefined}
                   onClick={(event) => {
+                    if (navigator.vibrate) navigator.vibrate(8)
                     if (active) {
                       event.preventDefault()
                       rememberScrollPosition(currentKey, 0)

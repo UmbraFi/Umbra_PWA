@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type MouseEvent } from 'react'
+import { memo, useCallback, useEffect, useRef, type MouseEvent } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 
 import type { Product } from '../data/mockProducts'
@@ -28,7 +28,7 @@ const isLayerBlocked = (el: HTMLElement): boolean => {
   return section !== null && getComputedStyle(section).pointerEvents === 'none'
 }
 
-export default function ProductCard({ product, variant = 'normal' }: Props) {
+const ProductCard = memo(function ProductCard({ product, variant = 'normal' }: Props) {
   const path = toProductPath(product.id)
   const location = useLocation()
   const lastPressAtRef = useRef(0)
@@ -66,9 +66,24 @@ export default function ProductCard({ product, variant = 'normal' }: Props) {
   }, [])
 
   return (
-    <div
-      className="cursor-pointer group bg-white rounded-lg overflow-hidden relative"
-    >
+    <div className="cursor-pointer group bg-white rounded-lg overflow-hidden relative">
+      {/* Seller credit score pennant */}
+      <div className="absolute top-0 left-3 z-10 pointer-events-none select-none">
+        <div
+          className="flex flex-col items-center"
+          style={{
+            width: 22,
+            background: 'var(--color-accent)',
+            clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)',
+            paddingTop: 3,
+            paddingBottom: 6,
+          }}
+        >
+          <span className="text-[9px] font-bold leading-none text-black">
+            {product.sellerReputation}
+          </span>
+        </div>
+      </div>
       <Link
         to={path}
         state={{ from: fromPath }}
@@ -122,4 +137,6 @@ export default function ProductCard({ product, variant = 'normal' }: Props) {
       </button>
     </div>
   )
-}
+})
+
+export default ProductCard

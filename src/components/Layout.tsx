@@ -116,7 +116,7 @@ export default function Layout() {
         className="min-h-screen flex flex-col"
         style={shouldBlockTabPointerEvents ? { pointerEvents: 'none' } : undefined}
       >
-        <main className={`flex-1 px-2 relative overflow-x-hidden ${tabRouteMeta.showNavbar ? (tabRouteMeta.key === 'follow' ? 'pt-[calc(env(safe-area-inset-top,0px)+11.5rem)]' : 'pt-[calc(env(safe-area-inset-top,0px)+10rem)]') : 'pt-[calc(env(safe-area-inset-top,0px)+1rem)]'} ${tabRouteMeta.showBottomNav ? 'pb-nav' : 'pb-4'}`}>
+        <main className={`flex-1 px-2 relative overflow-x-hidden ${tabRouteMeta.showNavbar ? (tabRouteMeta.key === 'sell' ? 'pt-[calc(env(safe-area-inset-top,0px)+5.5rem)]' : tabRouteMeta.key === 'messages' ? 'pt-[calc(env(safe-area-inset-top,0px)+5.5rem)]' : tabRouteMeta.key === 'follow' ? 'pt-[calc(env(safe-area-inset-top,0px)+11rem)]' : 'pt-[calc(env(safe-area-inset-top,0px)+8.7rem)]') : 'pt-[calc(env(safe-area-inset-top,0px)+1rem)]'} ${tabRouteMeta.showBottomNav ? 'pb-nav' : 'pb-4'}`}>
           {Array.from(tabCacheRef.current.entries()).map(([path, element]) => {
             const isActive = isTabRoute && path === normalizedPathname
             const isUnderlay = isStackRoute && path === lastActiveTabRef.current

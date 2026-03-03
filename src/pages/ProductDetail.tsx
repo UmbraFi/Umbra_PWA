@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
-import { Heart, Share2 } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { useSwipeNavigation } from '../hooks/useSwipeNavigation'
 import { useSafeBack } from '../hooks/useSafeBack'
@@ -28,7 +27,7 @@ export default function ProductDetail() {
     }
   }
 
-  const { swipeRef } = useSwipeNavigation({
+  useSwipeNavigation({
     onSwipeRight: goBack,
     onSwipeLeft: goToSeller,
   })
@@ -46,27 +45,9 @@ export default function ProductDetail() {
 
   return (
     <div
-      ref={swipeRef}
       className="max-w-lg mx-auto pt-3"
       data-allow-horizontal-swipe="true"
     >
-      <div className="flex justify-end gap-2 pb-3">
-        <button
-          type="button"
-          className="tap-feedback p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
-          aria-label="Share product"
-        >
-          <Share2 size={20} />
-        </button>
-        <button
-          type="button"
-          className="tap-feedback p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)]"
-          aria-label="Save product"
-        >
-          <Heart size={20} />
-        </button>
-      </div>
-
       {/* Image */}
       <div className="bg-gray-100 rounded-lg overflow-hidden relative">
         <img

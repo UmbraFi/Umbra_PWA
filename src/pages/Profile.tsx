@@ -1,20 +1,28 @@
 import {
+  Camera,
+  ChevronRight,
   Copy,
+  Eye,
   Heart,
   Key,
   Lock,
   LogOut,
   Package,
   Plus,
+  ScanFace,
   Settings,
+  Shield,
   Unlock,
   Wallet,
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useWallet } from '../hooks/useWallet'
+import { isBiometricSupported } from '../services/walletCrypto'
 import { useStore } from '../store/useStore'
 
 type ImportMode = 'mnemonic' | 'privateKey'
+type CreateStep = 'biometric' | 'pin-set' | 'pin-confirm'
+type ImportStep = 'input' | 'biometric' | 'pin'
 const PIN_LENGTH = 6
 
 // ---------------------------------------------------------------------------
@@ -26,7 +34,6 @@ function useKeyboardOffset() {
     const vv = window.visualViewport
     if (!vv) return
     const update = () => {
-      // The difference between layout viewport and visual viewport = keyboard
       setOffset(Math.max(0, window.innerHeight - vv.height))
     }
     vv.addEventListener('resize', update)
@@ -64,7 +71,6 @@ function PinGrid({
 
   return (
     <div className="relative">
-      {/* Hidden native input for keyboard */}
       <input
         ref={inputRef}
         type="password"
@@ -78,7 +84,6 @@ function PinGrid({
         className="absolute inset-0 w-full h-full opacity-0 z-10"
         autoComplete="off"
       />
-      {/* Visual grid */}
       <div className="flex gap-2 justify-center" onClick={handleTap}>
         {Array.from({ length: PIN_LENGTH }).map((_, i) => (
           <div
@@ -122,21 +127,44 @@ export default function Profile() {
     disconnect,
     acknowledgeMnemonic,
     hasExistingWallet,
+    getDecryptedMnemonic,
+    verifyBiometric,
   } = useWallet()
 
+  // --- Create flow state ---
+  const [createStep, setCreateStep] = useState<CreateStep | null>(null)
+  const [createPin, setCreatePin] = useState('')
+  const [confirmPin, setConfirmPin] = useState('')
+  const [pinMismatch, setPinMismatch] = useState(false)
+
+  // --- Unlock state ---
+  const [showUnlock, setShowUnlock] = useState(false)
+  const [unlockPin, setUnlockPin] = useState('')
+
+  // --- Import flow state ---
   const [showImport, setShowImport] = useState(false)
+  const [importStep, setImportStep] = useState<ImportStep>('input')
   const [importMode, setImportMode] = useState<ImportMode>('mnemonic')
   const [importValue, setImportValue] = useState('')
-  const [pin, setPin] = useState('')
-  const [showPinFor, setShowPinFor] = useState<'create' | 'unlock' | null>(null)
+  const [importPin, setImportPin] = useState('')
+
+  // --- Mnemonic display ---
   const [showMnemonic, setShowMnemonic] = useState(false)
   const [mnemonicCopied, setMnemonicCopied] = useState(false)
-  const [importPin, setImportPin] = useState('')
+
+  // --- Settings: view mnemonic ---
+  const [showViewMnemonic, setShowViewMnemonic] = useState(false)
+  const [viewMnemonicPin, setViewMnemonicPin] = useState('')
+  const [savedMnemonic, setSavedMnemonic] = useState<string | null>(null)
+  const [viewMnemonicCopied, setViewMnemonicCopied] = useState(false)
+
+  // --- Biometric error ---
+  const [biometricError, setBiometricError] = useState<string | null>(null)
 
   const keyboardOffset = useKeyboardOffset()
   const setBottomNavHidden = useStore((s) => s.setBottomNavHidden)
 
-  const dialogOpen = !!showPinFor || showImport || showMnemonic
+  const dialogOpen = !!createStep || showUnlock || showImport || showMnemonic || showViewMnemonic
   useEffect(() => {
     setBottomNavHidden(dialogOpen)
     return () => setBottomNavHidden(false)
@@ -152,30 +180,96 @@ export default function Profile() {
       : 0,
   )
 
-  // Auto-submit when PIN reaches 6 digits
-  const pinSubmitting = useRef(false)
-  const handlePinChange = useCallback(async (v: string) => {
-    setPin(v)
-    if (v.length === PIN_LENGTH && !pinSubmitting.current) {
-      pinSubmitting.current = true
-      if (showPinFor === 'create') {
-        await createWallet(v)
-      } else if (showPinFor === 'unlock') {
-        await unlock(v)
+  // --- Create flow handlers ---
+  const startCreate = async () => {
+    setBiometricError(null)
+    if (isBiometricSupported()) {
+      setCreateStep('biometric')
+      try {
+        await verifyBiometric()
+        setCreateStep('pin-set')
+      } catch (e) {
+        setBiometricError((e as Error).message || 'Biometric verification failed.')
+        setCreateStep(null)
       }
-      setPin('')
-      setShowPinFor(null)
-      pinSubmitting.current = false
+    } else {
+      // No biometric available (dev over IP, etc.) — go straight to PIN
+      setCreateStep('pin-set')
     }
-  }, [showPinFor, createWallet, unlock])
+  }
 
-  const importPinSubmitting = useRef(false)
+  const handleCreatePinSet = useCallback((v: string) => {
+    setCreatePin(v)
+    setPinMismatch(false)
+    if (v.length === PIN_LENGTH) {
+      setTimeout(() => setCreateStep('pin-confirm'), 150)
+    }
+  }, [])
+
+  const createSubmitting = useRef(false)
+  const handleCreatePinConfirm = useCallback(async (v: string) => {
+    setConfirmPin(v)
+    if (v.length === PIN_LENGTH && !createSubmitting.current) {
+      if (v !== createPin) {
+        setPinMismatch(true)
+        setConfirmPin('')
+        return
+      }
+      createSubmitting.current = true
+      await createWallet(v)
+      setCreatePin('')
+      setConfirmPin('')
+      setCreateStep(null)
+      createSubmitting.current = false
+    }
+  }, [createPin, createWallet])
+
+  const closeCreate = () => {
+    setCreateStep(null)
+    setCreatePin('')
+    setConfirmPin('')
+    setPinMismatch(false)
+    setBiometricError(null)
+  }
+
+  // --- Unlock handler ---
+  const unlockSubmitting = useRef(false)
+  const handleUnlockPin = useCallback(async (v: string) => {
+    setUnlockPin(v)
+    if (v.length === PIN_LENGTH && !unlockSubmitting.current) {
+      unlockSubmitting.current = true
+      await unlock(v)
+      setUnlockPin('')
+      setShowUnlock(false)
+      unlockSubmitting.current = false
+    }
+  }, [unlock])
+
+  // --- Import flow handlers ---
+  const startImportBiometric = async () => {
+    if (!importValue.trim()) return
+    setBiometricError(null)
+    if (isBiometricSupported()) {
+      setImportStep('biometric')
+      try {
+        await verifyBiometric()
+        setImportStep('pin')
+      } catch (e) {
+        setBiometricError((e as Error).message || 'Biometric verification failed.')
+        setImportStep('input')
+      }
+    } else {
+      setImportStep('pin')
+    }
+  }
+
+  const importSubmitting = useRef(false)
   const handleImportPinChange = useCallback(async (v: string) => {
     setImportPin(v)
-    if (v.length === PIN_LENGTH && !importPinSubmitting.current) {
+    if (v.length === PIN_LENGTH && !importSubmitting.current) {
       const trimmed = importValue.trim()
       if (!trimmed) return
-      importPinSubmitting.current = true
+      importSubmitting.current = true
       if (importMode === 'mnemonic') {
         await importWalletFromMnemonic(trimmed, v)
       } else {
@@ -183,34 +277,88 @@ export default function Profile() {
       }
       setImportValue('')
       setImportPin('')
+      setImportStep('input')
       setShowImport(false)
-      importPinSubmitting.current = false
+      importSubmitting.current = false
     }
   }, [importValue, importMode, importWalletFromMnemonic, importWalletFromKey])
 
+  const closeImport = () => {
+    setShowImport(false)
+    setImportStep('input')
+    setImportValue('')
+    setImportPin('')
+    setBiometricError(null)
+  }
+
+  // --- Mnemonic display ---
   const handleMnemonicAck = () => {
     acknowledgeMnemonic()
     setShowMnemonic(false)
   }
 
-  const copyMnemonic = async () => {
-    if (!pendingMnemonic) return
-    await navigator.clipboard.writeText(pendingMnemonic)
-    setMnemonicCopied(true)
-    setTimeout(() => setMnemonicCopied(false), 2000)
+  const copyMnemonic = async (text: string, setter: (v: boolean) => void) => {
+    await navigator.clipboard.writeText(text)
+    setter(true)
+    setTimeout(() => setter(false), 2000)
   }
+
+  // --- View saved mnemonic ---
+  const viewMnemonicSubmitting = useRef(false)
+  const handleViewMnemonicPin = useCallback(async (v: string) => {
+    setViewMnemonicPin(v)
+    if (v.length === PIN_LENGTH && !viewMnemonicSubmitting.current) {
+      viewMnemonicSubmitting.current = true
+      try {
+        const mnemonic = await getDecryptedMnemonic(v)
+        if (mnemonic) {
+          setSavedMnemonic(mnemonic)
+        }
+      } catch {
+        // wrong pin — error handled by store
+      }
+      setViewMnemonicPin('')
+      viewMnemonicSubmitting.current = false
+    }
+  }, [getDecryptedMnemonic])
+
+  const closeViewMnemonic = () => {
+    setShowViewMnemonic(false)
+    setViewMnemonicPin('')
+    setSavedMnemonic(null)
+    setViewMnemonicCopied(false)
+  }
+
+  // --- Menu items ---
+  const menuItems = [
+    { icon: Package, label: 'My Listings', desc: 'Manage your items' },
+    { icon: Heart, label: 'Saved Items', desc: 'Items you liked' },
+    { icon: Wallet, label: 'Wallet', desc: 'View balances & transactions' },
+    ...(connected && unlocked
+      ? [{ icon: Eye, label: 'Recovery Phrase', desc: 'View your backup words', action: () => setShowViewMnemonic(true) }]
+      : []),
+    { icon: Settings, label: 'Settings', desc: 'Account preferences' },
+  ]
 
   return (
     <div className="max-w-lg mx-auto">
-      <div className="pt-6 pb-5 flex flex-col items-center text-center">
+      <div className="pt-6 pb-5 flex flex-col items-center text-center bg-white rounded-b-2xl">
         {/* Avatar */}
-        <div
-          className="rounded-full bg-gray-100 flex items-center justify-center mb-3"
-          style={{ width: 72, height: 72 }}
-        >
-          <span className="text-2xl font-mono-accent font-bold text-[var(--color-text-secondary)]">
-            {connected ? publicKey?.slice(0, 2) : '--'}
-          </span>
+        <div className="relative mb-3">
+          <div
+            className="rounded-full bg-gray-700 flex items-center justify-center"
+            style={{ width: 72, height: 72 }}
+          >
+            <span className="text-2xl font-mono-accent font-bold text-gray-300">
+              {connected ? publicKey?.slice(0, 2) : '--'}
+            </span>
+          </div>
+          <button
+            type="button"
+            className="absolute bottom-0 right-0 w-6 h-6 rounded-full bg-white border border-gray-200 flex items-center justify-center shadow-sm"
+          >
+            <Camera size={12} className="text-gray-500" />
+          </button>
         </div>
 
         {/* Not unlocked */}
@@ -223,7 +371,7 @@ export default function Profile() {
               {hasExistingWallet && (
                 <button
                   type="button"
-                  onClick={() => setShowPinFor('unlock')}
+                  onClick={() => setShowUnlock(true)}
                   disabled={isLoading}
                   className="btn-outline tap-feedback w-full py-2.5 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50"
                 >
@@ -234,8 +382,8 @@ export default function Profile() {
               <div className="flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setShowPinFor('create')}
-                  disabled={isLoading}
+                  onClick={startCreate}
+                  disabled={isLoading || !!createStep}
                   className="btn-outline tap-feedback flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Plus size={16} />
@@ -281,39 +429,88 @@ export default function Profile() {
           </>
         )}
 
-        {error && (
-          <p className="text-xs text-red-500 mt-2">{error}</p>
+        {(error || biometricError) && (
+          <p className="text-xs text-red-500 mt-2">{biometricError || error}</p>
         )}
       </div>
 
-      {/* PIN entry sheet (create / unlock) */}
-      {showPinFor && (
+      {/* ============ Create flow sheet ============ */}
+      {createStep && createStep !== 'biometric' && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
           style={{ paddingBottom: keyboardOffset }}
-          onClick={() => { setShowPinFor(null); setPin('') }}
+          onClick={closeCreate}
         >
           <div
             className="w-full max-w-lg bg-white rounded-t-2xl px-5 pt-5 pb-8 animate-slide-up"
             onClick={(e) => e.stopPropagation()}
           >
-            <h3 className="text-base font-semibold mb-2 text-center">
-              {showPinFor === 'unlock' ? 'Enter PIN' : 'Set a PIN'}
-            </h3>
-            <p className="text-xs text-[var(--color-text-secondary)] mb-5 text-center">
-              {showPinFor === 'unlock'
-                ? 'Enter your PIN to unlock your wallet.'
-                : 'Set a 6-digit PIN to protect your wallet.'}
-            </p>
-            <PinGrid value={pin} onChange={handlePinChange} autoFocus disabled={isLoading} />
+            {/* Step indicator */}
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="w-2 h-2 rounded-full bg-black" />
+              <div className={`w-2 h-2 rounded-full ${createStep === 'pin-confirm' ? 'bg-black' : 'bg-gray-200'}`} />
+            </div>
+
+            {createStep === 'pin-set' && (
+              <>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Shield size={18} className="text-gray-600" />
+                  <h3 className="text-base font-semibold">Set a PIN</h3>
+                </div>
+                <p className="text-xs text-[var(--color-text-secondary)] mb-5 text-center">
+                  Choose a 6-digit PIN to protect your wallet.
+                </p>
+                <PinGrid value={createPin} onChange={handleCreatePinSet} autoFocus disabled={isLoading} />
+              </>
+            )}
+
+            {createStep === 'pin-confirm' && (
+              <>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Shield size={18} className="text-gray-600" />
+                  <h3 className="text-base font-semibold">Confirm PIN</h3>
+                </div>
+                <p className="text-xs text-[var(--color-text-secondary)] mb-5 text-center">
+                  Enter your PIN again to confirm.
+                </p>
+                <PinGrid value={confirmPin} onChange={handleCreatePinConfirm} autoFocus disabled={isLoading} />
+                {pinMismatch && (
+                  <p className="text-xs text-red-500 mt-3 text-center">PINs don't match. Try again.</p>
+                )}
+              </>
+            )}
+
             {isLoading && (
-              <p className="text-xs text-[var(--color-text-secondary)] mt-3 text-center">Processing...</p>
+              <p className="text-xs text-[var(--color-text-secondary)] mt-3 text-center">Creating wallet...</p>
             )}
           </div>
         </div>
       )}
 
-      {/* Mnemonic display sheet */}
+      {/* ============ Unlock sheet ============ */}
+      {showUnlock && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+          style={{ paddingBottom: keyboardOffset }}
+          onClick={() => { setShowUnlock(false); setUnlockPin('') }}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-t-2xl px-5 pt-5 pb-8 animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-base font-semibold mb-2 text-center">Enter PIN</h3>
+            <p className="text-xs text-[var(--color-text-secondary)] mb-5 text-center">
+              Enter your PIN to unlock your wallet.
+            </p>
+            <PinGrid value={unlockPin} onChange={handleUnlockPin} autoFocus disabled={isLoading} />
+            {isLoading && (
+              <p className="text-xs text-[var(--color-text-secondary)] mt-3 text-center">Unlocking...</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============ Mnemonic display (after create) ============ */}
       {showMnemonic && pendingMnemonic && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" style={{ paddingBottom: keyboardOffset }}>
           <div
@@ -326,10 +523,7 @@ export default function Profile() {
             </p>
             <div className="grid grid-cols-3 gap-2 mb-4">
               {pendingMnemonic.split(' ').map((word, i) => (
-                <div
-                  key={i}
-                  className="rounded-lg bg-gray-50 px-2 py-2 text-center"
-                >
+                <div key={i} className="rounded-lg bg-gray-50 px-2 py-2 text-center">
                   <span className="text-[10px] text-[var(--color-text-secondary)]">{i + 1}</span>
                   <p className="text-sm font-mono-accent font-medium">{word}</p>
                 </div>
@@ -337,7 +531,7 @@ export default function Profile() {
             </div>
             <button
               type="button"
-              onClick={copyMnemonic}
+              onClick={() => copyMnemonic(pendingMnemonic, setMnemonicCopied)}
               className="tap-feedback w-full py-2 rounded-lg border border-gray-200 text-sm flex items-center justify-center gap-2 mb-2"
             >
               <Copy size={14} />
@@ -354,12 +548,12 @@ export default function Profile() {
         </div>
       )}
 
-      {/* Import sheet */}
+      {/* ============ Import sheet ============ */}
       {showImport && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
           style={{ paddingBottom: keyboardOffset }}
-          onClick={() => { setShowImport(false); setImportValue(''); setImportPin('') }}
+          onClick={closeImport}
         >
           <div
             className="w-full max-w-lg bg-white rounded-t-2xl px-5 pt-5 pb-8 animate-slide-up"
@@ -367,103 +561,171 @@ export default function Profile() {
           >
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-base font-semibold">Import Wallet</h3>
-              <button
-                type="button"
-                onClick={() => { setShowImport(false); setImportValue(''); setImportPin('') }}
-                className="text-[var(--color-text-secondary)] text-sm"
-              >
+              <button type="button" onClick={closeImport} className="text-[var(--color-text-secondary)] text-sm">
                 Cancel
               </button>
             </div>
 
-            {/* Mode toggle */}
-            <div className="flex rounded-lg bg-gray-100 p-0.5 mb-4">
-              <button
-                type="button"
-                onClick={() => { setImportMode('mnemonic'); setImportValue('') }}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${importMode === 'mnemonic' ? 'bg-white shadow-sm' : ''}`}
-              >
-                Recovery Phrase
-              </button>
-              <button
-                type="button"
-                onClick={() => { setImportMode('privateKey'); setImportValue('') }}
-                className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${importMode === 'privateKey' ? 'bg-white shadow-sm' : ''}`}
-              >
-                Private Key
-              </button>
-            </div>
+            {importStep === 'input' && (
+              <>
+                {/* Mode toggle */}
+                <div className="flex rounded-lg bg-gray-100 p-0.5 mb-4">
+                  <button
+                    type="button"
+                    onClick={() => { setImportMode('mnemonic'); setImportValue('') }}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${importMode === 'mnemonic' ? 'bg-white shadow-sm' : ''}`}
+                  >
+                    Recovery Phrase
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setImportMode('privateKey'); setImportValue('') }}
+                    className={`flex-1 py-1.5 text-xs font-medium rounded-md transition-colors ${importMode === 'privateKey' ? 'bg-white shadow-sm' : ''}`}
+                  >
+                    Private Key
+                  </button>
+                </div>
 
-            <p className="text-xs text-[var(--color-text-secondary)] mb-3">
-              {importMode === 'mnemonic'
-                ? 'Enter your 12-word recovery phrase separated by spaces.'
-                : 'Paste your Solana private key (base58 encoded).'}
-            </p>
-            <textarea
-              value={importValue}
-              onChange={(e) => setImportValue(e.target.value)}
-              placeholder={importMode === 'mnemonic' ? 'word1 word2 word3 ...' : 'Private key...'}
-              rows={3}
-              className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm font-mono-accent resize-none focus:outline-none focus:border-gray-400"
-            />
+                <p className="text-xs text-[var(--color-text-secondary)] mb-3">
+                  {importMode === 'mnemonic'
+                    ? 'Enter your 12-word recovery phrase separated by spaces.'
+                    : 'Paste your Solana private key (base58 encoded).'}
+                </p>
+                <textarea
+                  value={importValue}
+                  onChange={(e) => setImportValue(e.target.value)}
+                  placeholder={importMode === 'mnemonic' ? 'word1 word2 word3 ...' : 'Private key...'}
+                  rows={3}
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2.5 text-sm font-mono-accent resize-none focus:outline-none focus:border-gray-400"
+                />
+                <button
+                  type="button"
+                  onClick={startImportBiometric}
+                  disabled={!importValue.trim()}
+                  className="tap-feedback w-full mt-4 py-2.5 rounded-lg bg-black text-white text-sm font-medium disabled:opacity-40 flex items-center justify-center gap-2"
+                >
+                  <ScanFace size={16} />
+                  Continue
+                </button>
+              </>
+            )}
 
-            <p className="text-xs text-[var(--color-text-secondary)] mt-4 mb-3 text-center">Set a 6-digit PIN</p>
-            <PinGrid
-              value={importPin}
-              onChange={handleImportPinChange}
-              disabled={!importValue.trim() || isLoading}
-            />
-            {isLoading && (
-              <p className="text-xs text-[var(--color-text-secondary)] mt-3 text-center">Processing...</p>
+            {importStep === 'biometric' && (
+              <div className="flex flex-col items-center py-8">
+                <ScanFace size={48} className="text-gray-400 mb-3 animate-pulse" />
+                <p className="text-sm text-[var(--color-text-secondary)]">Verifying identity...</p>
+              </div>
+            )}
+
+            {importStep === 'pin' && (
+              <>
+                <p className="text-xs text-[var(--color-text-secondary)] mb-3 text-center">Set a 6-digit PIN to protect your wallet.</p>
+                <PinGrid
+                  value={importPin}
+                  onChange={handleImportPinChange}
+                  autoFocus
+                  disabled={isLoading}
+                />
+                {isLoading && (
+                  <p className="text-xs text-[var(--color-text-secondary)] mt-3 text-center">Importing...</p>
+                )}
+              </>
+            )}
+
+            {biometricError && importStep === 'input' && (
+              <p className="text-xs text-red-500 mt-2 text-center">{biometricError}</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ============ View saved mnemonic sheet ============ */}
+      {showViewMnemonic && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+          style={{ paddingBottom: keyboardOffset }}
+          onClick={closeViewMnemonic}
+        >
+          <div
+            className="w-full max-w-lg bg-white rounded-t-2xl px-5 pt-5 pb-8 animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {!savedMnemonic ? (
+              <>
+                <h3 className="text-base font-semibold mb-2 text-center">View Recovery Phrase</h3>
+                <p className="text-xs text-[var(--color-text-secondary)] mb-5 text-center">
+                  Enter your PIN to reveal your recovery phrase.
+                </p>
+                <PinGrid value={viewMnemonicPin} onChange={handleViewMnemonicPin} autoFocus />
+              </>
+            ) : (
+              <>
+                <h3 className="text-base font-semibold mb-2">Your Recovery Phrase</h3>
+                <p className="text-xs text-[var(--color-text-secondary)] mb-4">
+                  Keep these words secret and safe. Anyone with this phrase can access your wallet.
+                </p>
+                <div className="grid grid-cols-3 gap-2 mb-4">
+                  {savedMnemonic.split(' ').map((word, i) => (
+                    <div key={i} className="rounded-lg bg-gray-50 px-2 py-2 text-center">
+                      <span className="text-[10px] text-[var(--color-text-secondary)]">{i + 1}</span>
+                      <p className="text-sm font-mono-accent font-medium">{word}</p>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => copyMnemonic(savedMnemonic, setViewMnemonicCopied)}
+                  className="tap-feedback w-full py-2 rounded-lg border border-gray-200 text-sm flex items-center justify-center gap-2 mb-2"
+                >
+                  <Copy size={14} />
+                  {viewMnemonicCopied ? 'Copied!' : 'Copy to clipboard'}
+                </button>
+                <button
+                  type="button"
+                  onClick={closeViewMnemonic}
+                  className="tap-feedback w-full py-2.5 rounded-lg bg-black text-white text-sm font-medium"
+                >
+                  Done
+                </button>
+              </>
             )}
           </div>
         </div>
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-2">
-        <div className="py-3.5 text-center rounded-xl bg-gray-50">
+      <div className="flex items-center justify-center py-4">
+        <div className="flex-1 text-center">
           <p className="text-lg font-semibold font-mono-accent">{listings}</p>
-          <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
-            Listings
-          </p>
+          <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">Listings</p>
         </div>
-        <div className="py-3.5 text-center rounded-xl bg-gray-50">
+        <div className="w-px h-8 bg-gray-200" />
+        <div className="flex-1 text-center">
           <p className="text-lg font-semibold font-mono-accent">0</p>
-          <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
-            Sales
-          </p>
+          <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">Sales</p>
         </div>
-        <div className="py-3.5 text-center rounded-xl bg-gray-50">
+        <div className="w-px h-8 bg-gray-200" />
+        <div className="flex-1 text-center">
           <p className="text-lg font-semibold font-mono-accent">{connected ? 1 : 0}</p>
-          <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">
-            Wallets
-          </p>
+          <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">Wallets</p>
         </div>
       </div>
 
       {/* Menu items */}
       <div className="mt-5 flex flex-col gap-2">
-        {[
-          { icon: Package, label: 'My Listings', desc: 'Manage your items' },
-          { icon: Heart, label: 'Saved Items', desc: 'Items you liked' },
-          { icon: Wallet, label: 'Wallet', desc: 'View balances & transactions' },
-          { icon: Settings, label: 'Settings', desc: 'Account preferences' },
-        ].map(({ icon: Icon, label, desc }) => (
+        {menuItems.map(({ icon: Icon, label, desc, action }) => (
           <button
             key={label}
             type="button"
+            onClick={action}
             className="tap-feedback w-full flex items-center gap-3 rounded-2xl bg-white px-3 py-4 shadow-[0_8px_20px_rgba(10,10,10,0.04)] hover:bg-gray-50 transition-colors text-left"
           >
-            <Icon
-              size={20}
-              strokeWidth={1.5}
-              className="text-[var(--color-text-secondary)]"
-            />
-            <div>
+            <Icon size={20} strokeWidth={1.5} className="text-[var(--color-text-secondary)]" />
+            <div className="flex-1">
               <p className="text-sm font-medium">{label}</p>
               <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{desc}</p>
             </div>
+            <ChevronRight size={16} className="text-gray-300" />
           </button>
         ))}
       </div>

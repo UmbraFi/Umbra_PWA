@@ -160,19 +160,6 @@ export default function Sell() {
 
   return (
     <div className="max-w-lg mx-auto py-5 px-4 pb-nav">
-      {/* Agent banner */}
-      <div className="flex items-center gap-3 mb-5 p-3 rounded-xl bg-[var(--color-accent)]/10 border border-[var(--color-accent)]/20">
-        <div className="w-9 h-9 rounded-lg bg-[var(--color-accent)] flex items-center justify-center flex-shrink-0">
-          <Bot size={18} className="text-[var(--color-accent-active)]" />
-        </div>
-        <div className="min-w-0">
-          <p className="text-xs font-semibold leading-tight">AI-Powered Listing</p>
-          <p className="text-[10px] text-[var(--color-text-secondary)] leading-tight mt-0.5">
-            Photos + description + price. Agent handles title, category & tags.
-          </p>
-        </div>
-      </div>
-
       {/* Progress dots */}
       <div className="flex items-center gap-2 mb-5">
         {['Photos', 'Description', 'Price', 'Shipping'].map((label, i) => {

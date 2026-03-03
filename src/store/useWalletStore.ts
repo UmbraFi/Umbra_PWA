@@ -7,7 +7,6 @@ import {
   encryptData,
   decryptData,
   encryptMnemonic,
-  verifyBiometric,
   deriveKeyFromPin,
   generateSalt,
   loadWalletData,
@@ -20,10 +19,6 @@ import {
 
 // Module-scoped secret key — never exposed in store state or devtools
 let _secretKey: Uint8Array | null = null
-
-export function getSecretKey(): Uint8Array | null {
-  return _secretKey
-}
 
 interface WalletState {
   publicKey: string | null
@@ -40,6 +35,7 @@ interface WalletState {
   disconnect: () => void
   hasWallet: () => boolean
   acknowledgeMnemonic: () => void
+  getDecryptedMnemonic: (pin: string) => Promise<string | null>
 }
 
 export const useWalletStore = create<WalletState>((set) => ({
@@ -54,7 +50,6 @@ export const useWalletStore = create<WalletState>((set) => ({
   createWallet: async (pin: string) => {
     set({ isLoading: true, error: null })
     try {
-      await verifyBiometric()
       const mnemonic = generateMnemonic()
       const { publicKey, secretKey } = await keypairFromMnemonic(mnemonic)
 
@@ -84,7 +79,6 @@ export const useWalletStore = create<WalletState>((set) => ({
   importWalletFromMnemonic: async (mnemonic: string, pin: string) => {
     set({ isLoading: true, error: null })
     try {
-      await verifyBiometric()
       if (!validateMnemonic(mnemonic)) throw new Error('Invalid mnemonic phrase')
 
       const { publicKey, secretKey } = await keypairFromMnemonic(mnemonic)
@@ -114,7 +108,6 @@ export const useWalletStore = create<WalletState>((set) => ({
   importWalletFromKey: async (base58Key: string, pin: string) => {
     set({ isLoading: true, error: null })
     try {
-      await verifyBiometric()
       const { publicKey, secretKey } = importFromPrivateKey(base58Key)
       const salt = generateSalt()
       const encKey = await deriveKeyFromPin(pin, salt)
@@ -178,5 +171,18 @@ export const useWalletStore = create<WalletState>((set) => ({
 
   acknowledgeMnemonic: () => {
     set({ pendingMnemonic: null })
+  },
+
+  getDecryptedMnemonic: async (pin: string) => {
+    const data = loadWalletData()
+    if (!data?.encryptedMnemonic) return null
+    const salt = base64ToUint8(data.pinSalt)
+    const encKey = await deriveKeyFromPin(pin, salt)
+    const decrypted = decryptData(
+      data.encryptedMnemonic.nonce,
+      data.encryptedMnemonic.ciphertext,
+      encKey,
+    )
+    return new TextDecoder().decode(decrypted)
   },
 }))

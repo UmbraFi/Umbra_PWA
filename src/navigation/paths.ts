@@ -4,6 +4,7 @@ export const APP_ROUTE_PATHS = {
   sell: '/sell',
   messages: '/messages',
   profile: '/profile',
+  cart: '/cart',
   feedTags: '/feed-tags',
   product: '/product/:id',
   seller: '/seller/:sellerId',

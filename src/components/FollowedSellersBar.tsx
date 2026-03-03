@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import { useStore } from '../store/useStore'
 
 const avatarPalette = ['#111827', '#1F2937', '#0F172A', '#334155', '#3F3F46', '#27272A']
@@ -12,7 +12,7 @@ const getSellerAvatarLabel = (seller: string) => {
   return seller.slice(0, 2).toUpperCase()
 }
 
-export default function FollowedSellersBar() {
+const FollowedSellersBar = memo(function FollowedSellersBar() {
   const followedSellers = useStore((s) => s.followedSellers)
   const selectedSellers = useStore((s) => s.selectedFollowedSellers)
   const toggleSeller = useStore((s) => s.toggleSelectedFollowedSeller)
@@ -70,4 +70,6 @@ export default function FollowedSellersBar() {
       </div>
     </div>
   )
-}
+})
+
+export default FollowedSellersBar
