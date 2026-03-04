@@ -132,10 +132,18 @@ function IOSGuide() {
 function AndroidGuide() {
   const { canInstall, installed, installPWA } = usePWAInstall()
   const [show, setShow] = useState(false)
+  const [installing, setInstalling] = useState(false)
+
   useEffect(() => {
     const t = setTimeout(() => setShow(true), 100)
     return () => clearTimeout(t)
   }, [])
+
+  const handleInstall = async () => {
+    setInstalling(true)
+    const accepted = await installPWA()
+    if (!accepted) setInstalling(false)
+  }
 
   return (
     <main
@@ -164,11 +172,22 @@ function AndroidGuide() {
             </svg>
           </div>
           <p className="text-[var(--color-text)] font-semibold">Installed successfully!</p>
-          <p className="text-sm text-[var(--color-text-secondary)]">Open UmbraFi from your home screen.</p>
+          <p className="text-sm text-[var(--color-text-secondary)] text-center">
+            Please open UmbraFi from your home screen.
+          </p>
+        </div>
+      ) : installing ? (
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-[var(--color-border)] border-t-[var(--color-accent)] rounded-full animate-spin" />
+          <p className="text-[var(--color-text)] font-semibold">Installing...</p>
+          <p className="text-sm text-[var(--color-text-secondary)] text-center leading-relaxed">
+            Please wait for the browser to finish installing.<br />
+            Do not close this page.
+          </p>
         </div>
       ) : canInstall ? (
         <button
-          onClick={installPWA}
+          onClick={handleInstall}
           className="btn-accent px-8 py-4 rounded-2xl text-base cursor-pointer"
         >
           INSTALL UMBRAFI

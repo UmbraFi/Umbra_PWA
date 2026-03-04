@@ -27,12 +27,8 @@ export default function App() {
     }
     mq.addEventListener('change', handler)
 
-    const onInstalled = () => setStandalone(true)
-    window.addEventListener('appinstalled', onInstalled)
-
     return () => {
       mq.removeEventListener('change', handler)
-      window.removeEventListener('appinstalled', onInstalled)
     }
   }, [])
 
