@@ -37,19 +37,6 @@
     touch-action: pan-y;
   }
 
-  /* Seamless status-bar bridge: eliminates the thin line between
-     Android system status bar and page content in recent-apps view */
-  html::before {
-    content: '';
-    display: block;
-    position: fixed;
-    top: calc(-1 * env(safe-area-inset-top, 0px) - 1px);
-    left: 0;
-    right: 0;
-    height: calc(env(safe-area-inset-top, 0px) + 1px);
-    background-color: var(--color-bg);
-    z-index: 9999;
-  }
 
   body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
