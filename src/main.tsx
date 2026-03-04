@@ -109,7 +109,8 @@ const registerServiceWorker = () => {
   }
 
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch((error) => {
+    const base = import.meta.env.BASE_URL
+    navigator.serviceWorker.register(`${base}sw.js`, { scope: base }).catch((error) => {
       console.warn('[PWA] SW registration failed:', error)
     })
   })
