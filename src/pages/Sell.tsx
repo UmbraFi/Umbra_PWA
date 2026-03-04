@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
-import { Camera, X, Package, Truck, MapPin, Sparkles, Plus, Bot, Check, Globe, Home, Zap, DollarSign } from 'lucide-react'
+import { Camera, X, Package, Truck, MapPin, Sparkles, Plus, Bot, Check, Globe, Home, Zap, DollarSign, ShoppingBag, Gavel, Ticket } from 'lucide-react'
 
+type SellType = 'regular' | 'auction' | 'raffle'
 type ShippingMethod = 'standard' | 'express' | 'pickup'
 type ShippingRange = 'local' | 'domestic' | 'international'
 
@@ -52,7 +53,14 @@ const SHIPPING_RANGES: { value: ShippingRange; label: string; icon: typeof Globe
   { value: 'international', label: 'International', icon: Globe },
 ]
 
+const SELL_TYPES: { value: SellType; label: string; icon: typeof ShoppingBag }[] = [
+  { value: 'regular', label: '常规出售', icon: ShoppingBag },
+  { value: 'auction', label: '拍卖', icon: Gavel },
+  { value: 'raffle', label: '抽奖模式', icon: Ticket },
+]
+
 export default function Sell() {
+  const [sellType, setSellType] = useState<SellType>('regular')
   const [form, setForm] = useState<SellForm>(() => readSellDraft())
   const [photos, setPhotos] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -160,6 +168,31 @@ export default function Sell() {
 
   return (
     <div className="max-w-lg mx-auto py-5 px-4 pb-nav">
+      {/* Sell type switcher */}
+      <div className="mb-5">
+        <div className="flex bg-gray-100 rounded-lg p-0.5">
+          {SELL_TYPES.map((t) => {
+            const Icon = t.icon
+            const active = sellType === t.value
+            return (
+              <button
+                key={t.value}
+                type="button"
+                onClick={() => setSellType(t.value)}
+                className={`flex-1 flex items-center justify-center gap-1.5 py-2 text-sm rounded-md transition-all ${
+                  active
+                    ? 'bg-white text-[var(--color-text)] font-semibold shadow-sm'
+                    : 'text-[var(--color-text-secondary)] font-medium'
+                }`}
+              >
+                <Icon size={14} />
+                <span>{t.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
+
       {/* Progress dots */}
       <div className="flex items-center gap-2 mb-5">
         {['Photos', 'Description', 'Price', 'Shipping'].map((label, i) => {
