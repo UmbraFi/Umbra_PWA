@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { getMockProducts, type FeedType, type Product } from '../data/mockProducts'
 
 export type SortMode = 'Default Ranking' | 'Seller Reputation' | 'Product Quality'
+export type SellType = 'regular' | 'auction' | 'raffle'
 
 interface CartItem {
   product: Product
@@ -23,9 +24,13 @@ interface Store {
   isRefreshing: boolean
   isDiscoverPanelOpen: boolean
   bottomNavHidden: boolean
+  sellType: SellType
+  sellStep: number
   setSearchQuery: (query: string) => void
   setDiscoverPanelOpen: (isOpen: boolean) => void
   setBottomNavHidden: (hidden: boolean) => void
+  setSellType: (type: SellType) => void
+  setSellStep: (step: number) => void
   setSortMode: (mode: SortMode) => void
   setPriceRange: (min: number | null, max: number | null) => void
   toggleShipFromCountry: (country: string) => void
@@ -69,9 +74,13 @@ export const useStore = create<Store>()((set, get) => ({
   isRefreshing: false,
   isDiscoverPanelOpen: false,
   bottomNavHidden: false,
+  sellType: 'regular' as SellType,
+  sellStep: 0,
 
   setSearchQuery: (query) => set({ searchQuery: query }),
-  setDiscoverPanelOpen: (isOpen) => set({ isDiscoverPanelOpen: isOpen }),
+  setDiscoverPanelOpen: (isOpen) => set({ isDiscoverPanelOpen: isOpen, bottomNavHidden: isOpen }),
+  setSellType: (type) => set({ sellType: type }),
+  setSellStep: (step) => set({ sellStep: step }),
   setBottomNavHidden: (hidden) => set({ bottomNavHidden: hidden }),
   setSortMode: (mode) => set({ sortMode: mode }),
   setPriceRange: (min, max) => {

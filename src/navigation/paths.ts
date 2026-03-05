@@ -9,6 +9,7 @@ export const APP_ROUTE_PATHS = {
   product: '/product/:id',
   seller: '/seller/:sellerId',
   chat: '/chat/:chatId',
+  drafts: '/drafts',
 } as const
 
 export const APP_ROUTE_PREFIXES = {

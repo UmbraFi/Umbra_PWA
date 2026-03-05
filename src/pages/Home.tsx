@@ -1,7 +1,6 @@
 import { useRef, useCallback, useMemo } from 'react'
 import { motion, animate, useMotionValue, useTransform } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
-import DiscoverControls from '../components/DiscoverControls'
 import ProductCard from '../components/ProductCard'
 import { useStore } from '../store/useStore'
 
@@ -64,11 +63,7 @@ export default function Home() {
   }, [pullY, isRefreshing, refreshProducts])
 
   if (isDiscoverPanelOpen) {
-    return (
-      <div className="min-h-[calc(100vh-8rem)]">
-        <DiscoverControls autoFocusInput />
-      </div>
-    )
+    return <div className="min-h-[calc(100vh-8rem)]" />
   }
 
   return (
@@ -105,9 +100,9 @@ export default function Home() {
           <p className="text-sm text-[var(--color-text-secondary)]">No items in the selected tags</p>
         </div>
       ) : (
-        <div className="flex gap-2 items-start">
+        <div className="flex gap-1.5 items-start pb-1.5">
           {[0, 1].map((col) => (
-            <div key={col} className="flex-1 min-w-0 flex flex-col gap-2">
+            <div key={col} className="flex-1 min-w-0 flex flex-col gap-1.5">
               {filteredProducts
                 .filter((_, i) => i % 2 === col)
                 .map((product, i) => {

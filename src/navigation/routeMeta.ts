@@ -75,7 +75,7 @@ const STACK_ROUTES: Record<string, RouteMeta> = {
     kind: 'stack',
     showBottomNav: false,
     showExitButton: true,
-    showNavbar: false,
+    showNavbar: true,
   },
   [APP_ROUTE_PATHS.feedTags]: {
     key: 'feed-tags',
@@ -84,6 +84,14 @@ const STACK_ROUTES: Record<string, RouteMeta> = {
     showBottomNav: false,
     showExitButton: false,
     showNavbar: false,
+  },
+  [APP_ROUTE_PATHS.drafts]: {
+    key: 'drafts',
+    title: 'Drafts',
+    kind: 'stack',
+    showBottomNav: false,
+    showExitButton: false,
+    showNavbar: true,
   },
 }
 

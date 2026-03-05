@@ -69,7 +69,7 @@ export default function GlitchLogo() {
 
   return (
     <span
-      className={`umbra-logo-glitch ${logoEffectClass} inline-flex items-center px-2.5 py-1 text-[1.15rem] leading-none font-black tracking-[-0.03em]`}
+      className={`umbra-logo-glitch ${logoEffectClass} inline-flex items-center px-2.5 py-1 text-[1rem] leading-none font-black tracking-[-0.03em]`}
     >
       <span
         className="umbra-logo-glitch__text inline-block italic"

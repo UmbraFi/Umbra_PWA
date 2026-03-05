@@ -28,6 +28,8 @@ export default function Discover() {
   const products = useStore((s) => s.products)
   const followedSellers = useStore((s) => s.followedSellers)
   const selectedSellers = useStore((s) => s.selectedFollowedSellers)
+  const isDiscoverPanelOpen = useStore((s) => s.isDiscoverPanelOpen)
+  const setDiscoverPanelOpen = useStore((s) => s.setDiscoverPanelOpen)
 
   const followedFeed = useMemo(() => {
     const followedSet = new Set(followedSellers)
@@ -54,8 +56,12 @@ export default function Discover() {
     }
   }
 
+  if (isDiscoverPanelOpen) {
+    return <div className="min-h-[calc(100vh-8rem)]" />
+  }
+
   return (
-    <div>
+    <div className="bg-[var(--color-bg)] min-h-[calc(100vh-8rem)]">
       <div className="max-w-lg mx-auto">
         {followedSellers.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -142,6 +148,20 @@ export default function Discover() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* End of feed */}
+      <div className="py-10 text-center">
+        <p className="text-xs text-[var(--color-text-secondary)] font-mono-accent tracking-wide">
+          -- end of feed --
+        </p>
+        <button
+          type="button"
+          onClick={() => setDiscoverPanelOpen(true)}
+          className="inline-block mt-3 text-xs font-medium text-[var(--color-text)] underline underline-offset-2"
+        >
+          Search marketplace
+        </button>
       </div>
     </div>
   )

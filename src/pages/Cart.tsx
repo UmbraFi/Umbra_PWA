@@ -1,12 +1,7 @@
-import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, X, Minus, Plus, Trash2, ShoppingCart } from 'lucide-react'
+import { Minus, Plus, Trash2, ShoppingCart } from 'lucide-react'
 import { useStore } from '../store/useStore'
-import { useSafeBack } from '../hooks/useSafeBack'
-import { APP_ROUTE_PATHS } from '../navigation/paths'
 
 export default function Cart() {
-  const navigate = useNavigate()
-  const goBack = useSafeBack(APP_ROUTE_PATHS.home)
   const cart = useStore((s) => s.cart)
   const removeFromCart = useStore((s) => s.removeFromCart)
   const updateCartQuantity = useStore((s) => s.updateCartQuantity)
@@ -14,33 +9,7 @@ export default function Cart() {
   const total = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
 
   return (
-    <div className="min-h-screen bg-[var(--color-bg)]">
-      {/* Header */}
-      <nav
-        className="sticky top-0 z-50 bg-[var(--color-bg)]"
-        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
-      >
-        <div className="max-w-7xl mx-auto px-3 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-2">
-          <button
-            type="button"
-            onClick={goBack}
-            className="tap-feedback p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
-            aria-label="Go back"
-          >
-            <ArrowLeft size={20} strokeWidth={2} />
-          </button>
-          <span className="text-sm font-semibold text-center truncate">Cart</span>
-          <button
-            type="button"
-            onClick={() => navigate(APP_ROUTE_PATHS.home, { replace: true })}
-            className="tap-feedback p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
-            aria-label="Exit to home"
-          >
-            <X size={20} strokeWidth={2} />
-          </button>
-        </div>
-      </nav>
-
+    <div>
       {cart.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 px-4 text-center">
           <ShoppingCart size={48} strokeWidth={1.2} className="text-[var(--color-text-secondary)] mb-4" />

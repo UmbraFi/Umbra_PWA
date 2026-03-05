@@ -17,8 +17,22 @@ import {
   type WalletData,
 } from '../services/walletCrypto'
 
+import nacl from 'tweetnacl'
+
 // Module-scoped secret key — never exposed in store state or devtools
 let _secretKey: Uint8Array | null = null
+
+/** Returns the raw Ed25519 secret key (64 bytes). Throws if wallet is locked. */
+export function getSecretKey(): Uint8Array {
+  if (!_secretKey) throw new Error('Wallet is locked')
+  return _secretKey
+}
+
+/** Signs data with Ed25519 detached signature. Returns 64-byte signature. */
+export function signData(data: Uint8Array): Uint8Array {
+  if (!_secretKey) throw new Error('Wallet is locked')
+  return nacl.sign.detached(data, _secretKey)
+}
 
 interface WalletState {
   publicKey: string | null

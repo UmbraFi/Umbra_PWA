@@ -36,7 +36,7 @@ const FollowedSellersBar = memo(function FollowedSellersBar() {
           </button>
         )}
       </div>
-      <div className="flex gap-2 overflow-x-auto pb-1 [-webkit-overflow-scrolling:touch]">
+      <div className="flex gap-2 overflow-x-auto p-1 [-webkit-overflow-scrolling:touch]">
         {followedSellers.map((seller) => {
           const isSelected = selectedSet.has(seller)
           return (

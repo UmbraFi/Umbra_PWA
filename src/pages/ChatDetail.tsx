@@ -1,19 +1,39 @@
 import { useState, useRef, useEffect } from 'react'
-import { useParams } from 'react-router-dom'
-import { Send, Package } from 'lucide-react'
-import { mockTransactions, mockChatMessages, statusLabel, statusColor, type ChatMessage } from '../data/mockTransactions'
+import { useParams, useLocation } from 'react-router-dom'
+import { Send, Package, Wifi, WifiOff } from 'lucide-react'
+import { mockTransactions, statusLabel, statusColor } from '../data/mockTransactions'
 import { useSwipeNavigation } from '../hooks/useSwipeNavigation'
 import { useSafeBack } from '../hooks/useSafeBack'
 import { APP_ROUTE_PATHS } from '../navigation/paths'
+import { useChatStore, type DisplayMessage } from '../store/useChatStore'
+import { useWalletStore } from '../store/useWalletStore'
 
 export default function ChatDetail() {
   const { chatId } = useParams<{ chatId: string }>()
+  const location = useLocation()
   const tx = mockTransactions.find((t) => t.id === chatId)
   const goBack = useSafeBack(APP_ROUTE_PATHS.messages)
   useSwipeNavigation({ onSwipeRight: goBack })
   const [input, setInput] = useState('')
-  const [messages, setMessages] = useState<ChatMessage[]>(mockChatMessages[chatId || ''] || [])
   const bottomRef = useRef<HTMLDivElement>(null)
+
+  // Get peerPubKey from route state (passed by Messages page)
+  const peerPubKey = (location.state as { peerPubKey?: string } | null)?.peerPubKey || ''
+  const orderID = tx?.orderId || chatId || ''
+
+  const { isUnlocked } = useWalletStore()
+  const { conversations, wsConnected, loading, loadMessages, sendMessage, setActiveOrder } = useChatStore()
+
+  const messages: DisplayMessage[] = conversations[orderID] || []
+  const canChat = isUnlocked && !!peerPubKey
+
+  useEffect(() => {
+    if (canChat && orderID) {
+      loadMessages(orderID, peerPubKey)
+      setActiveOrder(orderID)
+    }
+    return () => setActiveOrder(null)
+  }, [orderID, peerPubKey, canChat])
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -27,19 +47,15 @@ export default function ChatDetail() {
     )
   }
 
-  const handleSend = () => {
+  const handleSend = async () => {
     const trimmed = input.trim()
-    if (!trimmed) return
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: String(Date.now()),
-        from: 'me',
-        text: trimmed,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      },
-    ])
+    if (!trimmed || !canChat) return
     setInput('')
+    try {
+      await sendMessage(orderID, peerPubKey, trimmed)
+    } catch (e) {
+      console.error('[chat] send error:', e)
+    }
   }
 
   return (
@@ -71,11 +87,30 @@ export default function ChatDetail() {
               {tx.role === 'buyer' ? 'Seller' : 'Buyer'}: {tx.counterparty}
             </p>
           </div>
+          {/* Connection indicator */}
+          <div className="shrink-0">
+            {wsConnected
+              ? <Wifi size={14} className="text-green-500" />
+              : <WifiOff size={14} className="text-[var(--color-text-secondary)]" />
+            }
+          </div>
         </div>
       </div>
 
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2.5">
+        {loading && messages.length === 0 && (
+          <div className="flex justify-center py-8">
+            <span className="text-xs text-[var(--color-text-secondary)]">Loading messages...</span>
+          </div>
+        )}
+        {!canChat && !loading && (
+          <div className="flex justify-center py-8">
+            <span className="text-xs text-[var(--color-text-secondary)]">
+              {!isUnlocked ? 'Unlock wallet to view messages' : 'Missing peer key'}
+            </span>
+          </div>
+        )}
         {messages.map((msg) => {
           if (msg.from === 'system') {
             return (
@@ -122,13 +157,14 @@ export default function ChatDetail() {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Type a message..."
-            className="flex-1 bg-[#F2F2F2] rounded-full px-4 py-2.5 text-sm outline-none placeholder:text-[var(--color-text-secondary)] focus:ring-1 focus:ring-[var(--color-accent)]"
+            placeholder={canChat ? 'Type a message...' : 'Unlock wallet to chat'}
+            disabled={!canChat}
+            className="flex-1 bg-[#F2F2F2] rounded-full px-4 py-2.5 text-sm outline-none placeholder:text-[var(--color-text-secondary)] focus:ring-1 focus:ring-[var(--color-accent)] disabled:opacity-50"
           />
           <button
             type="button"
             onClick={handleSend}
-            disabled={!input.trim()}
+            disabled={!input.trim() || !canChat}
             className="tap-feedback w-10 h-10 rounded-full bg-[var(--color-text)] flex items-center justify-center shrink-0 disabled:opacity-30 transition-opacity"
           >
             <Send size={16} className="text-white ml-0.5" />

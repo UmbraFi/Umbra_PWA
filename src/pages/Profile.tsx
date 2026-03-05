@@ -1,19 +1,25 @@
 import {
   Camera,
   ChevronRight,
+  Bot,
+  Clock,
   Copy,
   Eye,
   Heart,
   Key,
   Lock,
   LogOut,
+  MapPin,
   Package,
   Plus,
   ScanFace,
   Settings,
   Shield,
+  ShoppingBag,
+  Store,
+  Tag,
   Unlock,
-  Wallet,
+  Users,
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useWallet } from '../hooks/useWallet'
@@ -169,6 +175,7 @@ export default function Profile() {
     setBottomNavHidden(dialogOpen)
     return () => setBottomNavHidden(false)
   }, [dialogOpen, setBottomNavHidden])
+
 
   useEffect(() => {
     if (pendingMnemonic) setShowMnemonic(true)
@@ -331,18 +338,29 @@ export default function Profile() {
 
   // --- Menu items ---
   const menuItems = [
-    { icon: Package, label: 'My Listings', desc: 'Manage your items' },
-    { icon: Heart, label: 'Saved Items', desc: 'Items you liked' },
-    { icon: Wallet, label: 'Wallet', desc: 'View balances & transactions' },
+    { icon: MapPin, label: 'My Address', desc: 'Manage your shipping addresses' },
+    { icon: Package, label: 'My Listings', desc: 'Manage your published items' },
+    { icon: Store, label: 'My Space', desc: 'Your public storefront for buyers' },
+    { icon: Tag, label: 'My Sales', desc: 'Items you have sold' },
+    { icon: ShoppingBag, label: 'My Purchases', desc: 'Items you have bought' },
+    { icon: Clock, label: 'Browsing History', desc: 'Recently viewed items' },
+    { icon: Heart, label: 'My Favorites', desc: 'Items you have saved' },
+    { icon: Users, label: 'Followed Stores', desc: 'Stores you are following' },
     ...(connected && unlocked
       ? [{ icon: Eye, label: 'Recovery Phrase', desc: 'View your backup words', action: () => setShowViewMnemonic(true) }]
       : []),
-    { icon: Settings, label: 'Settings', desc: 'Account preferences' },
   ]
 
   return (
-    <div className="max-w-lg mx-auto">
-      <div className="pt-6 pb-5 flex flex-col items-center text-center bg-white rounded-b-2xl">
+    <div className="-mx-1.5 -mt-[calc(env(safe-area-inset-top,0px)+1rem)] pt-[calc(env(safe-area-inset-top,0px)+1rem)] bg-[var(--color-bg)]">
+      <div className="relative pt-6 pb-5 flex flex-col items-center text-center bg-[var(--color-bg)]">
+        {/* Top-left Settings & Top-right AI Support */}
+        <button type="button" className="absolute top-4 left-4 tap-feedback p-1.5 rounded-full hover:bg-black/5 transition-colors">
+          <Settings size={22} strokeWidth={1.5} className="text-[var(--color-text-secondary)]" />
+        </button>
+        <button type="button" className="absolute top-4 right-4 tap-feedback p-1.5 rounded-full hover:bg-black/5 transition-colors">
+          <Bot size={22} strokeWidth={1.5} className="text-[var(--color-text-secondary)]" />
+        </button>
         {/* Avatar */}
         <div className="relative mb-3">
           <div
@@ -693,40 +711,43 @@ export default function Profile() {
         </div>
       )}
 
-      {/* Stats */}
-      <div className="flex items-center justify-center py-4">
-        <div className="flex-1 text-center">
-          <p className="text-lg font-semibold font-mono-accent">{listings}</p>
-          <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">Listings</p>
+      {/* Stats + Menu container */}
+      <div className="relative mt-4 bg-white rounded-t-2xl after:absolute after:left-0 after:right-0 after:top-full after:h-screen after:bg-white">
+        {/* Stats */}
+        <div className="flex items-center justify-center py-4">
+          <div className="flex-1 text-center">
+            <p className="text-lg font-semibold font-mono-accent">{listings}</p>
+            <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">Deals</p>
+          </div>
+          <div className="w-px h-8 bg-gray-200" />
+          <div className="flex-1 text-center">
+            <p className="text-lg font-semibold font-mono-accent">—</p>
+            <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">Rating</p>
+          </div>
+          <div className="w-px h-8 bg-gray-200" />
+          <div className="flex-1 text-center">
+            <p className="text-lg font-semibold font-mono-accent">{connected ? '<1y' : '—'}</p>
+            <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">Account Age</p>
+          </div>
         </div>
-        <div className="w-px h-8 bg-gray-200" />
-        <div className="flex-1 text-center">
-          <p className="text-lg font-semibold font-mono-accent">0</p>
-          <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">Sales</p>
-        </div>
-        <div className="w-px h-8 bg-gray-200" />
-        <div className="flex-1 text-center">
-          <p className="text-lg font-semibold font-mono-accent">{connected ? 1 : 0}</p>
-          <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide">Wallets</p>
-        </div>
-      </div>
 
-      {/* Menu items */}
-      <div className="mt-5 flex flex-col gap-2">
+        {/* Menu items */}
         {menuItems.map(({ icon: Icon, label, desc, action }) => (
-          <button
-            key={label}
-            type="button"
-            onClick={action}
-            className="tap-feedback w-full flex items-center gap-3 rounded-2xl bg-white px-3 py-4 shadow-[0_8px_20px_rgba(10,10,10,0.04)] hover:bg-gray-50 transition-colors text-left"
-          >
-            <Icon size={20} strokeWidth={1.5} className="text-[var(--color-text-secondary)]" />
-            <div className="flex-1">
-              <p className="text-sm font-medium">{label}</p>
-              <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{desc}</p>
-            </div>
-            <ChevronRight size={16} className="text-gray-300" />
-          </button>
+          <div key={label}>
+            <div className="h-px bg-gray-100 mx-4" />
+            <button
+              type="button"
+              onClick={action}
+              className="tap-feedback w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 transition-colors text-left"
+            >
+              <Icon size={20} strokeWidth={1.5} className="text-[var(--color-text-secondary)]" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">{label}</p>
+                <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{desc}</p>
+              </div>
+              <ChevronRight size={16} className="text-gray-300" />
+            </button>
+          </div>
         ))}
       </div>
     </div>

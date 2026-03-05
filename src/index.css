@@ -76,6 +76,16 @@
 }
 
 @layer components {
+  /* Hide scrollbar but keep scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Mono accent font for branding / web3 elements */
   .font-mono-accent {
     font-family: 'Space Mono', 'SF Mono', 'Fira Code', ui-monospace, monospace;
@@ -1517,7 +1527,7 @@
   }
 
   .liquid-tabbar {
-    background: rgba(245, 245, 245, 0.92);
+    background: rgba(245, 245, 245, 0.80);
     border: none;
     box-shadow: 0 14px 32px rgba(10, 10, 10, 0.14), 0 2px 8px rgba(10, 10, 10, 0.08);
     backdrop-filter: blur(20px) saturate(170%);

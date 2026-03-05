@@ -16,6 +16,7 @@ const SellerProfile = lazy(() => import('./pages/SellerProfile'))
 const ChatDetail = lazy(() => import('./pages/ChatDetail'))
 const Cart = lazy(() => import('./pages/Cart'))
 const FeedTagFilters = lazy(() => import('./pages/FeedTagFilters'))
+const Drafts = lazy(() => import('./pages/Drafts'))
 
 export default function App() {
   const [standalone, setStandalone] = useState(() => isStandalone())
@@ -50,6 +51,7 @@ export default function App() {
             <Route path={APP_ROUTE_PATHS.chat} element={<ChatDetail />} />
             <Route path={APP_ROUTE_PATHS.cart} element={<Cart />} />
             <Route path={APP_ROUTE_PATHS.feedTags} element={<FeedTagFilters />} />
+            <Route path={APP_ROUTE_PATHS.drafts} element={<Drafts />} />
             <Route path="*" element={<Navigate to={APP_ROUTE_PATHS.home} replace />} />
           </Route>
         </Routes>

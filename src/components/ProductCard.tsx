@@ -66,24 +66,7 @@ const ProductCard = memo(function ProductCard({ product, variant = 'normal' }: P
   }, [])
 
   return (
-    <div className="cursor-pointer group bg-white rounded-lg overflow-hidden relative">
-      {/* Seller credit score pennant */}
-      <div className="absolute top-0 left-3 z-10 pointer-events-none select-none">
-        <div
-          className="flex flex-col items-center"
-          style={{
-            width: 22,
-            background: 'var(--color-accent)',
-            clipPath: 'polygon(0 0, 100% 0, 100% 100%, 50% 80%, 0 100%)',
-            paddingTop: 3,
-            paddingBottom: 6,
-          }}
-        >
-          <span className="text-[9px] font-bold leading-none text-black">
-            {product.sellerReputation}
-          </span>
-        </div>
-      </div>
+    <div className="cursor-pointer group bg-white overflow-hidden relative rounded-lg" style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
       <Link
         to={path}
         state={{ from: fromPath }}
@@ -94,8 +77,8 @@ const ProductCard = memo(function ProductCard({ product, variant = 'normal' }: P
         onTouchStart={markPress}
         onMouseEnter={() => preloadImage(product.image)}
       >
-        <div className="p-1.5 pb-0">
-          <div className={`${variant === 'tall' ? 'aspect-[3/5]' : 'aspect-[3/4]'} overflow-hidden rounded-md bg-gray-100 relative`}>
+        <div>
+          <div className={`${variant === 'tall' ? 'aspect-[3/5]' : 'aspect-[3/4]'} overflow-hidden bg-gray-100 relative rounded-b-lg`}>
             <img
               src={product.image}
               alt={product.name}
