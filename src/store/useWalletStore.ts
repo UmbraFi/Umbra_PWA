@@ -18,9 +18,16 @@ import {
 } from '../services/walletCrypto'
 
 import nacl from 'tweetnacl'
+import { migrateToScopedStorage } from '../services/storage'
+import { hydrateStoreFromWallet } from './useStore'
 
 // Module-scoped secret key — never exposed in store state or devtools
 let _secretKey: Uint8Array | null = null
+
+function onWalletReady() {
+  migrateToScopedStorage()
+  hydrateStoreFromWallet()
+}
 
 const SESSION_SK_KEY = 'umbra_session_sk'
 
@@ -79,6 +86,8 @@ const _restored = (() => {
   return false
 })()
 
+if (_restored) onWalletReady()
+
 export const useWalletStore = create<WalletState>((set) => ({
   publicKey: loadWalletData()?.publicKey ?? null,
   isUnlocked: _restored,
@@ -113,6 +122,7 @@ export const useWalletStore = create<WalletState>((set) => ({
       _secretKey = secretKey
       persistSession(secretKey)
       set({ publicKey, isUnlocked: true, isLoading: false, pendingMnemonic: mnemonic })
+      onWalletReady()
     } catch (e) {
       set({ isLoading: false, error: (e as Error).message })
     }
@@ -143,6 +153,7 @@ export const useWalletStore = create<WalletState>((set) => ({
       _secretKey = secretKey
       persistSession(secretKey)
       set({ publicKey, isUnlocked: true, isLoading: false })
+      onWalletReady()
     } catch (e) {
       set({ isLoading: false, error: (e as Error).message })
     }
@@ -169,6 +180,7 @@ export const useWalletStore = create<WalletState>((set) => ({
       _secretKey = secretKey
       persistSession(secretKey)
       set({ publicKey, isUnlocked: true, isLoading: false })
+      onWalletReady()
     } catch (e) {
       set({ isLoading: false, error: (e as Error).message })
     }
@@ -192,6 +204,7 @@ export const useWalletStore = create<WalletState>((set) => ({
       _secretKey = secretKey
       persistSession(secretKey)
       set({ publicKey: data.publicKey, isUnlocked: true, isLoading: false })
+      onWalletReady()
     } catch (e) {
       set({ isLoading: false, error: (e as Error).message })
     }

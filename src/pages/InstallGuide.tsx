@@ -179,9 +179,9 @@ function AndroidGuide() {
       ) : installing ? (
         <div className="flex flex-col items-center gap-4">
           <div className="w-12 h-12 border-4 border-[var(--color-border)] border-t-[var(--color-accent)] rounded-full animate-spin" />
-          <p className="text-[var(--color-text)] font-semibold">Installing...</p>
+          <p className="text-[var(--color-text)] font-semibold">Installation started</p>
           <p className="text-sm text-[var(--color-text-secondary)] text-center leading-relaxed">
-            Please wait for the browser to finish installing.<br />
+            Please wait for the install popup to appear.<br />
             Do not close this page.
           </p>
         </div>

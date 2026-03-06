@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Trash2, Image, Archive } from 'lucide-react'
 import { APP_ROUTE_PATHS } from '../navigation/paths'
+import { getWalletItem, setWalletItem } from '../services/storage'
 
 export type SellType = 'regular' | 'auction' | 'raffle'
 
@@ -28,20 +29,12 @@ export interface SellDraft {
   updatedAt: number
 }
 
-export const SELL_DRAFTS_STORAGE_KEY = 'umbrafi.sell.drafts'
-
 export function readDrafts(): SellDraft[] {
-  try {
-    const raw = window.localStorage.getItem(SELL_DRAFTS_STORAGE_KEY)
-    if (!raw) return []
-    return JSON.parse(raw) as SellDraft[]
-  } catch {
-    return []
-  }
+  return getWalletItem<SellDraft[]>('sell.drafts', [])
 }
 
 export function saveDrafts(drafts: SellDraft[]) {
-  window.localStorage.setItem(SELL_DRAFTS_STORAGE_KEY, JSON.stringify(drafts))
+  setWalletItem('sell.drafts', drafts)
 }
 
 export function deleteDraft(id: string) {

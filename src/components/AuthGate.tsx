@@ -1,4 +1,4 @@
-import { Key, Lock, LogOut, Plus, Shield, Unlock } from 'lucide-react'
+import { Fingerprint, Key, Lock, LogOut, Plus, Shield, Unlock } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useWallet } from '../hooks/useWallet'
 import { isBiometricSupported } from '../services/walletCrypto'
@@ -6,12 +6,18 @@ import { useStore } from '../store/useStore'
 import PinGrid, { PIN_LENGTH } from './PinGrid'
 import MnemonicGrid from './MnemonicGrid'
 
-type View = 'idle' | 'create-pin' | 'create-confirm' | 'unlock' | 'import-input' | 'import-pin' | 'mnemonic-backup' | 'disconnect-confirm'
+type View = 'idle' | 'biometric-unlocking' | 'create-pin' | 'create-confirm' | 'unlock' | 'import-input' | 'import-pin' | 'mnemonic-backup' | 'disconnect-confirm'
 type ImportMode = 'mnemonic' | 'privateKey'
+
+// Store PIN for biometric-gated auto-unlock
+const BIO_PIN_KEY = 'umbra_bio_pin'
+function saveBioPin(pin: string) { localStorage.setItem(BIO_PIN_KEY, pin) }
+function loadBioPin(): string | null { return localStorage.getItem(BIO_PIN_KEY) }
+function clearBioPin() { localStorage.removeItem(BIO_PIN_KEY) }
 
 export default function AuthGate() {
   const {
-    unlocked, isLoading, error, hasExistingWallet, shortAddress,
+    unlocked, isLoading, error, hasExistingWallet,
     createWallet, importWalletFromMnemonic, importWalletFromKey,
     unlock, disconnect, pendingMnemonic, acknowledgeMnemonic, verifyBiometric,
   } = useWallet()
@@ -24,6 +30,7 @@ export default function AuthGate() {
   const [importValue, setImportValue] = useState('')
   const [localError, setLocalError] = useState<string | null>(null)
   const submitting = useRef(false)
+  const bioAttempted = useRef(false)
 
   const setBottomNavHidden = useStore((s) => s.setBottomNavHidden)
 
@@ -39,6 +46,24 @@ export default function AuthGate() {
     return () => { if (visible) setBottomNavHidden(false) }
   }, [visible, setBottomNavHidden])
 
+  // Auto-attempt biometric unlock when gate appears with existing wallet
+  useEffect(() => {
+    if (!visible || !hasExistingWallet || bioAttempted.current) return
+    const storedPin = loadBioPin()
+    if (!storedPin || !isBiometricSupported()) return
+
+    bioAttempted.current = true
+    setView('biometric-unlocking')
+    setLocalError(null)
+
+    verifyBiometric()
+      .then(() => unlock(storedPin))
+      .catch(() => {
+        // Biometric failed, fall back to PIN
+        setView('unlock')
+      })
+  }, [visible, hasExistingWallet, verifyBiometric, unlock])
+
   // Reset state when gate becomes hidden
   useEffect(() => {
     if (!visible) {
@@ -48,6 +73,7 @@ export default function AuthGate() {
       setImportValue('')
       setLocalError(null)
       setPinMismatch(false)
+      bioAttempted.current = false
     }
   }, [visible])
 
@@ -91,6 +117,7 @@ export default function AuthGate() {
       }
       submitting.current = true
       await createWallet(v)
+      saveBioPin(v)
       setPin('')
       setConfirmPin('')
       submitting.current = false
@@ -103,10 +130,25 @@ export default function AuthGate() {
     if (v.length === PIN_LENGTH && !submitting.current) {
       submitting.current = true
       await unlock(v)
+      saveBioPin(v)
       setPin('')
       submitting.current = false
     }
   }, [unlock])
+
+  // Manual biometric retry from PIN screen
+  const retryBiometric = async () => {
+    const storedPin = loadBioPin()
+    if (!storedPin || !isBiometricSupported()) return
+    setLocalError(null)
+    setView('biometric-unlocking')
+    try {
+      await verifyBiometric()
+      await unlock(storedPin)
+    } catch {
+      setView('unlock')
+    }
+  }
 
   // --- Import flow ---
   const startImport = () => {
@@ -142,6 +184,7 @@ export default function AuthGate() {
       } else {
         await importWalletFromKey(trimmed, v)
       }
+      saveBioPin(v)
       setPin('')
       setImportValue('')
       submitting.current = false
@@ -150,6 +193,7 @@ export default function AuthGate() {
 
   // --- Disconnect ---
   const handleDisconnect = () => {
+    clearBioPin()
     disconnect()
     setView('idle')
   }
@@ -181,12 +225,21 @@ export default function AuthGate() {
   }
 
   const displayError = localError || error
+  const hasBioPin = !!loadBioPin() && isBiometricSupported()
 
   return (
     <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm">
 
-        {/* Idle: show main options */}
+        {/* Biometric unlocking in progress */}
+        {view === 'biometric-unlocking' && (
+          <div className="flex flex-col items-center py-8">
+            <Fingerprint size={48} className="text-gray-400 mb-4 animate-pulse" />
+            <p className="text-sm text-[var(--color-text-secondary)]">Verifying identity...</p>
+          </div>
+        )}
+
+        {/* Idle: no wallet */}
         {view === 'idle' && !hasExistingWallet && (
           <>
             <div className="flex items-center justify-center mb-3">
@@ -219,6 +272,7 @@ export default function AuthGate() {
           </>
         )}
 
+        {/* Idle: wallet locked */}
         {view === 'idle' && hasExistingWallet && (
           <>
             <div className="flex items-center justify-center mb-3">
@@ -231,13 +285,23 @@ export default function AuthGate() {
               Unlock your wallet to continue.
             </p>
             <div className="flex flex-col gap-3">
+              {hasBioPin && (
+                <button
+                  type="button"
+                  onClick={retryBiometric}
+                  disabled={isLoading}
+                  className="tap-feedback w-full py-3 rounded-xl bg-black text-white text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <Fingerprint size={16} /> Unlock with Face ID
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => { setPin(''); setView('unlock') }}
                 disabled={isLoading}
-                className="tap-feedback w-full py-3 rounded-xl bg-black text-white text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50"
+                className={`tap-feedback w-full py-3 rounded-xl text-sm font-medium flex items-center justify-center gap-2 disabled:opacity-50 ${hasBioPin ? 'border border-gray-200 text-black' : 'bg-black text-white'}`}
               >
-                <Unlock size={16} /> Unlock {shortAddress}
+                <Unlock size={16} /> Unlock with PIN
               </button>
               <button
                 type="button"
@@ -290,7 +354,7 @@ export default function AuthGate() {
           </>
         )}
 
-        {/* Unlock */}
+        {/* Unlock with PIN */}
         {view === 'unlock' && (
           <>
             <h2 className="text-base font-semibold mb-2 text-center">Enter PIN</h2>
@@ -301,7 +365,12 @@ export default function AuthGate() {
             {isLoading && (
               <p className="text-xs text-[var(--color-text-secondary)] mt-3 text-center">Unlocking...</p>
             )}
-            <button type="button" onClick={resetToIdle} className="w-full mt-4 text-sm text-[var(--color-text-secondary)]">
+            {hasBioPin && (
+              <button type="button" onClick={retryBiometric} className="w-full mt-4 text-sm text-[var(--color-text-secondary)] flex items-center justify-center gap-1.5">
+                <Fingerprint size={14} /> Use Face ID instead
+              </button>
+            )}
+            <button type="button" onClick={resetToIdle} className="w-full mt-3 text-sm text-[var(--color-text-secondary)]">
               Back
             </button>
           </>

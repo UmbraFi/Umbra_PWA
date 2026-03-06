@@ -32,7 +32,7 @@ import AvatarDisplay from '../components/AvatarDisplay'
 import CreateWalletSheet, { type CreateStep } from '../components/wallet/CreateWalletSheet'
 import UnlockSheet from '../components/wallet/UnlockSheet'
 import ImportWalletSheet, { type ImportStep } from '../components/wallet/ImportWalletSheet'
-import { PendingMnemonicSheet, ViewMnemonicSheet } from '../components/wallet/MnemonicSheet'
+import { PendingMnemonicSheet } from '../components/wallet/MnemonicSheet'
 import WalletSheet from '../components/wallet/WalletSheet'
 import BuyTokenSheet from '../components/wallet/BuyTokenSheet'
 import EditProfileSheet from '../components/wallet/EditProfileSheet'
@@ -50,7 +50,7 @@ export default function Profile() {
   const [showImport, setShowImport] = useState(false)
   const [importStep, setImportStep] = useState<ImportStep>('input')
   const [showMnemonic, setShowMnemonic] = useState(false)
-  const [showViewMnemonic, setShowViewMnemonic] = useState(false)
+
   const [showWallet, setShowWallet] = useState(false)
   const [showDisconnectConfirm, setShowDisconnectConfirm] = useState(false)
   const [showBuyToken, setShowBuyToken] = useState(false)
@@ -62,7 +62,7 @@ export default function Profile() {
   const navigate = useNavigate()
   const setBottomNavHidden = useStore((s) => s.setBottomNavHidden)
 
-  const dialogOpen = !!createStep || showUnlock || showImport || showMnemonic || showViewMnemonic || showWallet || showDisconnectConfirm || showBuyToken || showEditProfile
+  const dialogOpen = !!createStep || showUnlock || showImport || showMnemonic || showWallet || showDisconnectConfirm || showBuyToken || showEditProfile
   useEffect(() => {
     setBottomNavHidden(dialogOpen)
     return () => setBottomNavHidden(false)
@@ -119,19 +119,16 @@ export default function Profile() {
     { icon: Clock, label: 'Browsing History', desc: 'Recently viewed items', action: () => navigate(APP_ROUTE_PATHS.browsingHistory) },
     { icon: Heart, label: 'My Favorites', desc: 'Items you have saved', action: () => navigate(APP_ROUTE_PATHS.favorites) },
     { icon: Users, label: 'Followed Stores', desc: 'Stores you are following', action: () => navigate(APP_ROUTE_PATHS.followedStores) },
-    ...(connected && unlocked
-      ? [{ icon: Eye, label: 'Recovery Phrase', desc: 'View your backup words', action: () => setShowViewMnemonic(true) }]
-      : []),
   ]
 
   return (
     <div className="-mx-1.5 -mt-[calc(env(safe-area-inset-top,0px)+1rem)] pt-[calc(env(safe-area-inset-top,0px)+1rem)] bg-[var(--color-bg)]">
       <div className="relative pt-6 pb-5 flex flex-col items-center text-center bg-[var(--color-bg)]">
         {/* Top-left Settings & Top-right AI Support */}
-        <button type="button" onClick={() => navigate(APP_ROUTE_PATHS.settings)} className="absolute -top-3 left-1.5 tap-feedback p-1.5 rounded-full hover:bg-black/5 transition-colors">
+        <button type="button" onClick={() => navigate(APP_ROUTE_PATHS.settings)} className="absolute -top-3 left-0 tap-feedback p-3 rounded-full hover:bg-black/5 transition-colors">
           <Settings size={20} strokeWidth={1.8} className="text-black" />
         </button>
-        <button type="button" onClick={() => navigate(APP_ROUTE_PATHS.aiSupport)} className="absolute -top-3 right-1.5 tap-feedback p-1.5 rounded-full hover:bg-black/5 transition-colors">
+        <button type="button" onClick={() => navigate(APP_ROUTE_PATHS.aiSupport)} className="absolute -top-3 right-0 tap-feedback p-3 rounded-full hover:bg-black/5 transition-colors">
           <Bot size={20} strokeWidth={1.8} className="text-black" />
         </button>
 
@@ -215,7 +212,7 @@ export default function Profile() {
         importStep={importStep} setImportStep={setImportStep}
       />
       <PendingMnemonicSheet mnemonic={pendingMnemonic} open={showMnemonic} onAcknowledge={handleMnemonicAck} />
-      <ViewMnemonicSheet open={showViewMnemonic} onClose={() => setShowViewMnemonic(false)} getDecryptedMnemonic={getDecryptedMnemonic} />
+
       <BottomSheet open={showDisconnectConfirm} onClose={() => setShowDisconnectConfirm(false)}>
         <h3 className="text-base font-semibold mb-2 text-center">Disconnect Wallet?</h3>
         <p className="text-xs text-[var(--color-text-secondary)] mb-5 text-center">

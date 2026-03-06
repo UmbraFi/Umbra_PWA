@@ -5,6 +5,7 @@ import { uploadImages } from '../services/ipfs'
 import { REGIONS } from '../data/regions'
 import { useStore } from '../store/useStore'
 import { addDraft, readDrafts } from './Drafts'
+import { getWalletItem, setWalletItem, removeWalletItem } from '../services/storage'
 
 
 type ShippingMethod = 'standard' | 'express' | 'pickup'
@@ -32,7 +33,7 @@ interface SellForm {
   raffleMaxEntry: string
 }
 
-const SELL_DRAFT_STORAGE_KEY = 'umbrafi.sell.draft'
+const SELL_DRAFT_KEY = 'sell.draft'
 
 const DEFAULT_REGION_CONFIG: ShippingRegionConfig = {
   type: 'domestic',
@@ -63,9 +64,8 @@ const AUCTION_DURATIONS: { value: AuctionDuration; label: string }[] = [
 
 const readSellDraft = (): SellForm => {
   try {
-    const raw = window.localStorage.getItem(SELL_DRAFT_STORAGE_KEY)
-    if (!raw) return DEFAULT_FORM
-    const parsed = JSON.parse(raw) as Record<string, unknown>
+    const parsed = getWalletItem<Record<string, unknown> | null>(SELL_DRAFT_KEY, null)
+    if (!parsed) return DEFAULT_FORM
     const regionConfig = parsed.shippingRegionConfig as Partial<ShippingRegionConfig> | undefined
     return {
       description: typeof parsed.description === 'string' ? parsed.description : '',
@@ -189,7 +189,7 @@ export default function Sell() {
   }, [])
 
   useEffect(() => {
-    window.localStorage.setItem(SELL_DRAFT_STORAGE_KEY, JSON.stringify(form))
+    try { setWalletItem(SELL_DRAFT_KEY, form) } catch { /* no wallet */ }
   }, [form])
 
   const handlePhotoAdd = () => {
@@ -252,7 +252,7 @@ export default function Sell() {
       const productId = crypto.randomUUID()
       await uploadImages(productId, photos)
       setSubmitted(true)
-      window.localStorage.removeItem(SELL_DRAFT_STORAGE_KEY)
+      try { removeWalletItem(SELL_DRAFT_KEY) } catch { /* ignore */ }
     } catch (err) {
       console.error('Upload failed:', err)
     } finally {

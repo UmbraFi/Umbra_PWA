@@ -38,6 +38,14 @@ export default function Navbar({ variant, routeMeta }: NavbarProps) {
   const [headerVisible, setHeaderVisible] = useState(true)
   const lastScrollY = useRef(0)
 
+  // Reset header to visible whenever navigating back to home/follow
+  useEffect(() => {
+    if (variant === 'tab' && (routeMeta.kind === 'home' || routeMeta.key === 'follow')) {
+      setHeaderVisible(true)
+      lastScrollY.current = window.scrollY
+    }
+  }, [variant, routeMeta.kind, routeMeta.key])
+
   useEffect(() => {
     if (variant !== 'tab' || (routeMeta.kind !== 'home' && routeMeta.key !== 'follow')) return
     let rafId = 0
@@ -62,15 +70,22 @@ export default function Navbar({ variant, routeMeta }: NavbarProps) {
     }
   }, [variant, routeMeta.kind, routeMeta.key])
 
-  // Tab variant: logo + cart + search bar for all tabs
+  // Tab variant: render all header variants together, toggle via display
   if (variant === 'tab') {
-    // Pages that show a simple title header instead of logo + search
-    if (routeMeta.key === 'sell') {
-      return (
-        <nav
-          className="fixed top-0 left-0 right-0 z-50 bg-[var(--color-bg)]"
-          style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
-        >
+    if (routeMeta.key === 'messages') {
+      return null // Messages page renders its own header
+    }
+
+    const isSell = routeMeta.key === 'sell'
+    const isStandard = !isSell
+
+    return (
+      <nav
+        className="fixed top-0 left-0 right-0 z-50 bg-[var(--color-bg)]"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
+        {/* ── Sell header ── */}
+        <div style={{ display: isSell ? 'block' : 'none' }}>
           <div className="max-w-7xl mx-auto px-1.5 h-10 flex items-center justify-between">
             <h1 className="text-lg font-semibold pl-2">Listing</h1>
             <button
@@ -148,120 +163,112 @@ export default function Navbar({ variant, routeMeta }: NavbarProps) {
               )
             })()}
           </div>
-        </nav>
-      )
-    }
-
-    if (routeMeta.key === 'messages') {
-      return null // Messages page renders its own header
-    }
-
-    return (
-      <nav
-        className="fixed top-0 left-0 right-0 z-50 bg-[var(--color-bg)]"
-        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
-      >
-        {/* Top row: logo + cart — hides on scroll */}
-        <div
-          className="overflow-hidden transition-all duration-300 ease-in-out"
-          style={{
-            maxHeight: headerVisible ? '40px' : '0px',
-            opacity: headerVisible ? 1 : 0,
-          }}
-        >
-          <div className="max-w-7xl mx-auto px-1.5 h-10 flex items-center justify-between">
-            <Link to={APP_ROUTE_PATHS.home} className="flex items-center">
-              <GlitchLogo />
-            </Link>
-            <button
-              type="button"
-              onClick={() => navigate(APP_ROUTE_PATHS.cart)}
-              className="tap-feedback p-1.5 text-[var(--color-text)] relative"
-              aria-label="Shopping cart"
-            >
-              <ShoppingCart size={20} strokeWidth={1.8} />
-              {cartCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
-                  {cartCount}
-                </span>
-              )}
-            </button>
-          </div>
         </div>
 
-        {/* Search bar — hides on scroll */}
-        <div
-          className="overflow-hidden transition-all duration-300 ease-in-out"
-          style={{
-            maxHeight: headerVisible ? '48px' : '0px',
-            opacity: headerVisible ? 1 : 0,
-          }}
-        >
-          <div className="max-w-7xl mx-auto px-1.5 pb-0.5">
-            {isDiscoverPanelOpen ? (
-              <div className="flex items-center gap-2">
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault()
-                    ;(document.activeElement as HTMLElement)?.blur()
-                  }}
-                  className="flex-1 flex items-center gap-2 bg-white rounded-lg px-4 py-2 border border-[var(--color-border)] focus-within:border-[var(--color-text)] transition-colors"
-                >
-                  <Search size={16} strokeWidth={2} className="text-[var(--color-text-secondary)] shrink-0" />
-                  <input
-                    autoFocus
-                    type="text"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search products..."
-                    className="flex-1 text-sm bg-transparent border-none outline-none placeholder:text-[var(--color-text-secondary)]"
-                  />
-                  <button type="submit" className="shrink-0 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors" aria-label="Search">
-                    <ArrowRight size={16} strokeWidth={2} />
-                  </button>
-                </form>
-                <button
-                  type="button"
-                  onClick={() => setDiscoverPanelOpen(false)}
-                  className="tap-feedback p-2 text-[var(--color-text-secondary)]"
-                  aria-label="Close search"
-                >
-                  <X size={20} strokeWidth={2} />
-                </button>
-              </div>
-            ) : (
+        {/* ── Standard header (home, follow, profile, etc.) ── */}
+        <div style={{ display: isStandard ? 'block' : 'none' }}>
+          {/* Top row: logo + cart — hides on scroll */}
+          <div
+            className="overflow-hidden transition-all duration-300 ease-in-out"
+            style={{
+              maxHeight: headerVisible ? '40px' : '0px',
+              opacity: headerVisible ? 1 : 0,
+            }}
+          >
+            <div className="max-w-7xl mx-auto px-1.5 h-10 flex items-center justify-between">
+              <Link to={APP_ROUTE_PATHS.home} className="flex items-center">
+                <GlitchLogo />
+              </Link>
               <button
                 type="button"
-                onClick={() => setDiscoverPanelOpen(true)}
-                className="w-full flex items-center gap-2 bg-white rounded-lg px-4 py-2 border border-[var(--color-border)] tap-feedback"
+                onClick={() => navigate(APP_ROUTE_PATHS.cart)}
+                className="tap-feedback p-1.5 text-[var(--color-text)] relative"
+                aria-label="Shopping cart"
               >
-                <Search size={16} strokeWidth={2} className="text-[var(--color-text-secondary)]" />
-                <span className="flex-1 text-sm text-[var(--color-text-secondary)] text-left">Search products...</span>
+                <ShoppingCart size={20} strokeWidth={1.8} />
+                {cartCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] font-bold px-1">
+                    {cartCount}
+                  </span>
+                )}
               </button>
-            )}
+            </div>
           </div>
+
+          {/* Search bar — hides on scroll */}
+          <div
+            className="overflow-hidden transition-all duration-300 ease-in-out"
+            style={{
+              maxHeight: headerVisible ? '48px' : '0px',
+              opacity: headerVisible ? 1 : 0,
+            }}
+          >
+            <div className="max-w-7xl mx-auto px-1.5 pb-0.5">
+              {isDiscoverPanelOpen ? (
+                <div className="flex items-center gap-2">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault()
+                      ;(document.activeElement as HTMLElement)?.blur()
+                    }}
+                    className="flex-1 flex items-center gap-2 bg-white rounded-lg px-4 py-2 border border-[var(--color-border)] focus-within:border-[var(--color-text)] transition-colors"
+                  >
+                    <Search size={16} strokeWidth={2} className="text-[var(--color-text-secondary)] shrink-0" />
+                    <input
+                      autoFocus
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder="Search products..."
+                      className="flex-1 text-sm bg-transparent border-none outline-none placeholder:text-[var(--color-text-secondary)]"
+                    />
+                    <button type="submit" className="shrink-0 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors" aria-label="Search">
+                      <ArrowRight size={16} strokeWidth={2} />
+                    </button>
+                  </form>
+                  <button
+                    type="button"
+                    onClick={() => setDiscoverPanelOpen(false)}
+                    className="tap-feedback p-2 text-[var(--color-text-secondary)]"
+                    aria-label="Close search"
+                  >
+                    <X size={20} strokeWidth={2} />
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setDiscoverPanelOpen(true)}
+                  className="w-full flex items-center gap-2 bg-white rounded-lg px-4 py-2 border border-[var(--color-border)] tap-feedback"
+                >
+                  <Search size={16} strokeWidth={2} className="text-[var(--color-text-secondary)]" />
+                  <span className="flex-1 text-sm text-[var(--color-text-secondary)] text-left">Search products...</span>
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Tag bar — on home always, on follow when search is open */}
+          {(routeMeta.kind === 'home' || (routeMeta.key === 'follow' && isDiscoverPanelOpen)) && (
+            <div className="max-w-7xl mx-auto px-1.5">
+              <ListingTypeBar selected={listingTypes} onChange={setListingTypes} />
+            </div>
+          )}
+
+          {/* Price range — only when search is open (home or follow) */}
+          {(routeMeta.kind === 'home' || routeMeta.key === 'follow') && isDiscoverPanelOpen && (
+            <div className="max-w-7xl mx-auto px-1.5 pt-1.5 pb-1.5">
+              <DiscoverControls />
+            </div>
+          )}
+
+          {/* Followed sellers bar — only on follow page when search is closed */}
+          {routeMeta.key === 'follow' && !isDiscoverPanelOpen && (
+            <div className="max-w-7xl mx-auto px-1.5">
+              <FollowedSellersBar />
+            </div>
+          )}
         </div>
-
-        {/* Tag bar — on home always, on follow when search is open */}
-        {(routeMeta.kind === 'home' || (routeMeta.key === 'follow' && isDiscoverPanelOpen)) && (
-          <div className="max-w-7xl mx-auto px-1.5">
-            <ListingTypeBar selected={listingTypes} onChange={setListingTypes} />
-          </div>
-        )}
-
-        {/* Price range — only when search is open (home or follow) */}
-        {(routeMeta.kind === 'home' || routeMeta.key === 'follow') && isDiscoverPanelOpen && (
-          <div className="max-w-7xl mx-auto px-1.5 pt-1.5 pb-1.5">
-            <DiscoverControls />
-          </div>
-        )}
-
-        {/* Followed sellers bar — only on follow page when search is closed */}
-        {routeMeta.key === 'follow' && !isDiscoverPanelOpen && (
-          <div className="max-w-7xl mx-auto px-1.5">
-            <FollowedSellersBar />
-          </div>
-        )}
       </nav>
     )
   }

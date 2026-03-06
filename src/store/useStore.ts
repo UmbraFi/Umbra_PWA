@@ -1,5 +1,7 @@
 import { create } from 'zustand'
+import { subscribeWithSelector } from 'zustand/middleware'
 import { getMockProducts, type FeedType, type Product } from '../data/mockProducts'
+import { getWalletItem, setWalletItem } from '../services/storage'
 
 export type SortMode = 'Default Ranking' | 'Seller Reputation' | 'Product Quality'
 export type SellType = 'regular' | 'auction' | 'raffle'
@@ -63,7 +65,7 @@ const getComprehensiveScore = (product: Product) => {
 
 const defaultFollowedSellers = ['7xKz...9fRm', '4pQw...2nXk', '6jNr...1aDe', '8hFg...7mWx', '5wAe...0pLj']
 
-export const useStore = create<Store>()((set, get) => ({
+export const useStore = create<Store>()(subscribeWithSelector((set, get) => ({
   products: getMockProducts(),
   cart: [],
   searchQuery: '',
@@ -251,4 +253,29 @@ export const useStore = create<Store>()((set, get) => ({
       )
     })
   },
-}))
+})))
+
+// Persisted keys scoped per wallet
+const PERSISTED_KEYS = ['favorites', 'browsingHistory', 'cart', 'followedSellers'] as const
+
+/** Hydrate persisted store fields from wallet-scoped storage */
+export function hydrateStoreFromWallet(): void {
+  try {
+    useStore.setState({
+      favorites: getWalletItem<string[]>('store.favorites', []),
+      browsingHistory: getWalletItem<string[]>('store.browsingHistory', []),
+      cart: getWalletItem<CartItem[]>('store.cart', []),
+      followedSellers: getWalletItem<string[]>('store.followedSellers', defaultFollowedSellers),
+    })
+  } catch { /* no wallet */ }
+}
+
+// Auto-save persisted fields on change
+for (const key of PERSISTED_KEYS) {
+  useStore.subscribe(
+    (state) => state[key],
+    (value) => {
+      try { setWalletItem(`store.${key}`, value) } catch { /* no wallet */ }
+    },
+  )
+}

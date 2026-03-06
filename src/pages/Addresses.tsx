@@ -1,5 +1,6 @@
 import { MapPin, Plus, Trash2 } from 'lucide-react'
 import { useState, useEffect } from 'react'
+import { getWalletItem, setWalletItem } from '../services/storage'
 
 interface Address {
   id: string
@@ -10,19 +11,12 @@ interface Address {
   country: string
 }
 
-const STORAGE_KEY = 'umbra_addresses'
-
 function loadAddresses(): Address[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    return raw ? JSON.parse(raw) : []
-  } catch {
-    return []
-  }
+  return getWalletItem<Address[]>('addresses', [])
 }
 
 function saveAddresses(addresses: Address[]) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(addresses))
+  setWalletItem('addresses', addresses)
 }
 
 export default function Addresses() {
