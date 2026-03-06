@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react'
-import { Copy, Check, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Copy, Check, Eye, EyeOff, Loader2, QrCode, ArrowLeft } from 'lucide-react'
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js'
+import { QRCodeSVG } from 'qrcode.react'
 import BottomSheet from '../BottomSheet'
 import MnemonicGrid from '../MnemonicGrid'
 import PinGrid, { PIN_LENGTH } from '../PinGrid'
@@ -51,7 +52,7 @@ interface WalletSheetProps {
   getDecryptedMnemonic: (pin: string) => Promise<string | null>
 }
 
-type View = 'main' | 'pin' | 'mnemonic'
+type View = 'main' | 'receive' | 'pin' | 'mnemonic'
 
 export default function WalletSheet({
   open, onClose, publicKey, shortAddress, getDecryptedMnemonic,
@@ -153,7 +154,7 @@ export default function WalletSheet({
             )}
           </div>
 
-          {/* Address */}
+          {/* Address + Receive */}
           <div className="bg-[var(--color-bg)] rounded-xl p-4 mb-4">
             <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">Wallet Address</p>
             <div className="flex items-center gap-2">
@@ -167,6 +168,14 @@ export default function WalletSheet({
                 {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => setView('receive')}
+              className="mt-3 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[var(--color-accent)] text-black text-sm font-medium tap-feedback"
+            >
+              <QrCode size={16} />
+              Receive (QR Code)
+            </button>
           </div>
 
           {/* Chain Info */}
@@ -186,6 +195,47 @@ export default function WalletSheet({
           >
             View Recovery Phrase
           </button>
+        </>
+      )}
+
+      {view === 'receive' && publicKey && (
+        <>
+          <button
+            type="button"
+            onClick={() => setView('main')}
+            className="flex items-center gap-1 text-sm text-[var(--color-text-secondary)] mb-3 tap-feedback"
+          >
+            <ArrowLeft size={16} />
+            Back
+          </button>
+          <h3 className="text-base font-semibold mb-1 text-center">Receive</h3>
+          <p className="text-xs text-[var(--color-text-secondary)] mb-4 text-center">
+            Scan QR code or copy address to receive SOL, USDT, or USDC
+          </p>
+
+          <div className="flex justify-center mb-4">
+            <div className="p-3">
+              <QRCodeSVG value={publicKey} size={180} fgColor="#CCFF00" bgColor="transparent" />
+            </div>
+          </div>
+
+          <div className="bg-[var(--color-bg)] rounded-xl p-4 mb-4">
+            <p className="text-xs text-[var(--color-text-secondary)] uppercase tracking-wide mb-2">Your Address</p>
+            <p className="text-sm font-mono-accent break-all mb-3">{publicKey}</p>
+            <button
+              type="button"
+              onClick={copyAddress}
+              className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[var(--color-accent)] text-black text-sm font-medium tap-feedback"
+            >
+              {copied ? <><Check size={16} /> Copied!</> : <><Copy size={16} /> Copy Address</>}
+            </button>
+          </div>
+
+          <div className="flex items-center justify-center gap-3 text-xs text-[var(--color-text-secondary)]">
+            <span className="px-2 py-1 rounded-full bg-[var(--color-bg)]">SOL</span>
+            <span className="px-2 py-1 rounded-full bg-[var(--color-bg)]">USDT</span>
+            <span className="px-2 py-1 rounded-full bg-[var(--color-bg)]">USDC</span>
+          </div>
         </>
       )}
 

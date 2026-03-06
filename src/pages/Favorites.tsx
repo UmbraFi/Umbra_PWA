@@ -1,5 +1,5 @@
 import { Heart } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { toProductPath } from '../navigation/paths'
 import type { Product } from '../data/mockProducts'
@@ -10,7 +10,9 @@ export default function Favorites() {
   const favorites = useStore((s) => s.favorites)
   const products = useStore((s) => s.products)
   const toggleFavorite = useStore((s) => s.toggleFavorite)
+  const location = useLocation()
   const navigate = useNavigate()
+  const fromPath = `${location.pathname}${location.search}`
 
   const favoriteProducts = favorites
     .map((id) => products.find((p) => p.id === id))
@@ -27,7 +29,7 @@ export default function Favorites() {
           <ProductListItem
             key={product.id}
             product={product}
-            onClick={() => navigate(toProductPath(product.id))}
+            onClick={() => navigate(toProductPath(product.id), { state: { from: fromPath } })}
             rightAction={
               <button type="button" onClick={() => toggleFavorite(product.id)} className="tap-feedback p-1.5 text-red-500">
                 <Heart size={18} fill="currentColor" />

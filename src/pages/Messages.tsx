@@ -15,6 +15,15 @@ export default function Messages() {
   const [editMode, setEditMode] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [searchQuery, setSearchQuery] = useState('')
+  const chatIntent = useMemo(() => {
+    const state = location.state as Record<string, unknown> | null
+    const sellerId = typeof state?.sellerId === 'string' ? state.sellerId : ''
+    const productName = typeof state?.productName === 'string' ? state.productName : ''
+
+    if (!sellerId) return null
+
+    return { sellerId, productName }
+  }, [location.state])
 
   const { isUnlocked } = useWalletStore()
   const { unreadOrders, fetchUnread, connectWebSocket, disconnectWebSocket } = useChatStore()
@@ -151,6 +160,23 @@ export default function Messages() {
             )}
           </div>
         </div>
+        {chatIntent && (
+          <div className="max-w-7xl mx-auto px-1.5 pb-2">
+            <div className="rounded-xl border border-[var(--color-accent)]/20 bg-[color-mix(in_srgb,var(--color-accent)_14%,white)] px-4 py-3">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-text-secondary)]">
+                Seller Chat
+              </p>
+              <p className="mt-1 text-sm font-medium text-[var(--color-text)]">
+                {chatIntent.productName
+                  ? `Contact ${chatIntent.sellerId} about ${chatIntent.productName}`
+                  : `Contact ${chatIntent.sellerId}`}
+              </p>
+              <p className="mt-1 text-xs text-[var(--color-text-secondary)]">
+                Open an existing transaction thread below, or complete checkout to unlock an order-linked encrypted chat.
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Pull-to-refresh indicator */}

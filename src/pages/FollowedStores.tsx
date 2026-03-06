@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { Users } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { toSellerPath } from '../navigation/paths'
 import { usePullToRefresh } from '../hooks/usePullToRefresh'
@@ -9,7 +9,9 @@ import PullToRefreshIndicator from '../components/PullToRefreshIndicator'
 export default function FollowedStores() {
   const followedSellers = useStore((s) => s.followedSellers)
   const toggleFollowSeller = useStore((s) => s.toggleFollowSeller)
+  const location = useLocation()
   const navigate = useNavigate()
+  const fromPath = `${location.pathname}${location.search}`
 
   const [isRefreshing, setIsRefreshing] = useState(false)
   const handleRefresh = useCallback(async () => {
@@ -40,7 +42,7 @@ export default function FollowedStores() {
         <div className="space-y-3">
           {followedSellers.map((seller) => (
             <div key={seller} className="flex items-center gap-3 p-3 rounded-xl bg-white border border-gray-100">
-              <button type="button" onClick={() => navigate(toSellerPath(seller))} className="tap-feedback flex items-center gap-3 flex-1 min-w-0 text-left">
+              <button type="button" onClick={() => navigate(toSellerPath(seller), { state: { from: fromPath } })} className="tap-feedback flex items-center gap-3 flex-1 min-w-0 text-left">
                 <div className="w-10 h-10 rounded-full bg-gray-700 flex items-center justify-center shrink-0">
                   <span className="text-xs font-mono-accent font-bold text-gray-300">{seller.slice(0, 2)}</span>
                 </div>

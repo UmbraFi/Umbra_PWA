@@ -24,6 +24,11 @@ export const isStackRouteActive = () => _stackRouteActive
 
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max)
 
+const isEdgeGestureExempt = (target: EventTarget | null) => {
+  if (!(target instanceof Element)) return false
+  return !!target.closest('[data-edge-gesture-exempt="true"]')
+}
+
 /**
  * Animate the stack overlay off-screen (same as swipe-right finish),
  * then invoke the callback.  Exported so back-buttons can reuse the
@@ -31,7 +36,8 @@ const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min)
  */
 export function animateStackOut(cb: () => void) {
   const vw = window.innerWidth
-  const overlay = document.querySelector<HTMLElement>('[data-stack-overlay]')
+  const overlay = document.querySelector<HTMLElement>('[data-stack-overlay="current"]')
+  const stackUnderlay = document.querySelector<HTMLElement>('[data-stack-underlay="true"]')
   const tabLayer = document.querySelector<HTMLElement>('[data-tab-layer]')
   const dimmer = document.querySelector<HTMLElement>('[data-swipe-dimmer]')
 
@@ -44,11 +50,11 @@ export function animateStackOut(cb: () => void) {
   overlay.style.transition = 'transform 0.15s ease-out'
   overlay.style.transform = `translateX(${vw}px)`
 
-  if (tabLayer) {
+  if (tabLayer && !stackUnderlay) {
     tabLayer.style.transition = 'transform 0.15s ease-out'
     tabLayer.style.transform = 'translateX(0px)'
   }
-  if (dimmer) {
+  if (dimmer && !stackUnderlay) {
     dimmer.style.transition = 'opacity 0.15s ease-out'
     dimmer.style.opacity = '0'
   }
@@ -62,7 +68,7 @@ export function animateStackOut(cb: () => void) {
     }
     cb()
     requestAnimationFrame(() => {
-      if (tabLayer) {
+      if (tabLayer && !stackUnderlay) {
         tabLayer.style.transform = ''
         tabLayer.style.transition = ''
       }
@@ -84,13 +90,15 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight }: SwipeHandlers)
 
   const UNDERLAY_SHIFT = -80 // must match index.css [data-tab-layer][data-shifted]
 
-  const getOverlay = () => document.querySelector<HTMLElement>('[data-stack-overlay]')
+  const getOverlay = () => document.querySelector<HTMLElement>('[data-stack-overlay="current"]')
+  const getStackUnderlay = () => document.querySelector<HTMLElement>('[data-stack-underlay="true"]')
   const getTabLayer = () => document.querySelector<HTMLElement>('[data-tab-layer]')
   const getDimmer = () => document.querySelector<HTMLElement>('[data-swipe-dimmer]')
 
   const applyTransform = (px: number) => {
     const vw = window.innerWidth
     const overlay = getOverlay()
+    const stackUnderlay = getStackUnderlay()
     const tabLayer = getTabLayer()
     const dimmer = getDimmer()
 
@@ -99,11 +107,11 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight }: SwipeHandlers)
         overlay.style.transform = ''
         overlay.style.transition = ''
       }
-      if (tabLayer) {
+      if (tabLayer && !stackUnderlay) {
         tabLayer.style.transform = ''
         tabLayer.style.transition = ''
       }
-      if (dimmer) {
+      if (dimmer && !stackUnderlay) {
         dimmer.style.opacity = ''
         dimmer.style.transition = ''
       }
@@ -116,12 +124,12 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight }: SwipeHandlers)
         overlay.style.transform = `translateX(${clamped}px)`
       }
       // Tab layer shifts back toward center (from UNDERLAY_SHIFT toward 0)
-      if (tabLayer) {
+      if (tabLayer && !stackUnderlay) {
         const tabX = UNDERLAY_SHIFT * (1 - progress)
         tabLayer.style.transition = 'none'
         tabLayer.style.transform = `translateX(${tabX}px)`
       }
-      if (dimmer) {
+      if (dimmer && !stackUnderlay) {
         dimmer.style.transition = 'none'
         dimmer.style.opacity = `${1 - progress}`
       }
@@ -130,17 +138,18 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight }: SwipeHandlers)
 
   const snapBack = () => {
     const overlay = getOverlay()
+    const stackUnderlay = getStackUnderlay()
     const tabLayer = getTabLayer()
     const dimmer = getDimmer()
     if (overlay) {
       overlay.style.transition = 'transform 0.2s ease-out'
       overlay.style.transform = ''
     }
-    if (tabLayer) {
+    if (tabLayer && !stackUnderlay) {
       tabLayer.style.transition = 'transform 0.2s ease-out'
       tabLayer.style.transform = `translateX(${UNDERLAY_SHIFT}px)`
     }
-    if (dimmer) {
+    if (dimmer && !stackUnderlay) {
       dimmer.style.transition = 'opacity 0.2s ease-out'
       dimmer.style.opacity = ''
     }
@@ -153,6 +162,7 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight }: SwipeHandlers)
       if (e.touches.length !== 1) return
       const touch = e.touches[0]
       if (touch.clientX > EDGE_THRESHOLD || !callbacksRef.current.onSwipeRight) return
+      if (isEdgeGestureExempt(e.target)) return
       // Only allow edge-swipe when a stack route is truly active (not just
       // lingering in the DOM during an exit animation).
       if (!_stackRouteActive) return

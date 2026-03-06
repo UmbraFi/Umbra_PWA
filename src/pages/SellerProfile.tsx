@@ -1,12 +1,13 @@
 import { useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, MessageCircle, UserCheck, UserPlus, Star, Shield } from 'lucide-react'
+import { MessageCircle, UserCheck, UserPlus, Star, Shield } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { useOnChainProfile } from '../hooks/useOnChainProfile'
 import { useSafeBack } from '../hooks/useSafeBack'
 import ProductCard from '../components/ProductCard'
 import AvatarDisplay from '../components/AvatarDisplay'
 import { APP_ROUTE_PATHS } from '../navigation/paths'
+import StackHeader from '../components/StackHeader'
 
 /** Derive a deterministic number from a string so mock stats stay stable. */
 function hashCode(s: string) {
@@ -54,24 +55,7 @@ export default function SellerProfile() {
       className="max-w-lg mx-auto"
       data-allow-horizontal-swipe="true"
     >
-      {/* Back button */}
-      <nav
-        className="sticky top-0 z-50 bg-[var(--color-bg)]"
-        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
-      >
-        <div className="px-1.5 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-2">
-          <button
-            type="button"
-            onClick={goBack}
-            className="tap-feedback p-1.5 rounded-full hover:bg-black/5 transition-colors"
-            aria-label="Go back"
-          >
-            <ChevronLeft size={20} strokeWidth={1.8} className="text-black" />
-          </button>
-          <span className="text-sm font-semibold text-center truncate">Seller</span>
-          <div className="w-[32px]" />
-        </div>
-      </nav>
+      <StackHeader title="Seller" onBack={goBack} bleed />
 
       {/* Profile Header */}
       <div className="flex flex-col items-center pt-2 pb-5">

@@ -228,7 +228,7 @@ export default function AuthGate() {
   const hasBioPin = !!loadBioPin() && isBiometricSupported()
 
   return (
-    <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center px-6">
+    <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center px-6 pb-24">
       <div className="w-full max-w-sm">
 
         {/* Biometric unlocking in progress */}

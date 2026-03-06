@@ -1,11 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
-import { ChevronLeft, Send, Package, Wifi, WifiOff } from 'lucide-react'
+import { Send, Package, Wifi, WifiOff } from 'lucide-react'
 import { mockTransactions, statusLabel, statusColor } from '../data/mockTransactions'
 import { useChatStore, type DisplayMessage } from '../store/useChatStore'
 import { useWalletStore } from '../store/useWalletStore'
 import { useSafeBack } from '../hooks/useSafeBack'
 import { APP_ROUTE_PATHS } from '../navigation/paths'
+import StackHeader from '../components/StackHeader'
 
 export default function ChatDetail() {
   const { chatId } = useParams<{ chatId: string }>()
@@ -59,24 +60,7 @@ export default function ChatDetail() {
 
   return (
     <div className="flex flex-col h-full max-w-2xl mx-auto" data-allow-horizontal-swipe="true">
-      {/* Back button + Transaction context banner */}
-      <nav
-        className="sticky top-0 z-50 bg-[var(--color-bg)]"
-        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
-      >
-        <div className="px-1.5 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-2">
-          <button
-            type="button"
-            onClick={goBack}
-            className="tap-feedback p-1.5 rounded-full hover:bg-black/5 transition-colors"
-            aria-label="Go back"
-          >
-            <ChevronLeft size={20} strokeWidth={1.8} className="text-black" />
-          </button>
-          <span className="text-sm font-semibold text-center truncate">Chat</span>
-          <div className="w-[32px]" />
-        </div>
-      </nav>
+      <StackHeader title="Chat" onBack={goBack} bleed />
 
       {/* Transaction context banner */}
       <div className="px-4 py-3 border-b border-[var(--color-border)] bg-[var(--color-surface)]">

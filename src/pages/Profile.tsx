@@ -3,7 +3,6 @@ import {
   ChevronRight,
   Clock,
   Coins,
-  Eye,
   Heart,
   Key,
   Lock,
@@ -18,6 +17,7 @@ import {
   Tag,
   Unlock,
   Users,
+  Wallet,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -125,7 +125,7 @@ export default function Profile() {
     <div className="-mx-1.5 -mt-[calc(env(safe-area-inset-top,0px)+1rem)] pt-[calc(env(safe-area-inset-top,0px)+1rem)] bg-[var(--color-bg)]">
       <div className="relative pt-6 pb-5 flex flex-col items-center text-center bg-[var(--color-bg)]">
         {/* Top-left Settings & Top-right AI Support */}
-        <button type="button" onClick={() => navigate(APP_ROUTE_PATHS.settings)} className="absolute -top-3 left-0 tap-feedback p-3 rounded-full hover:bg-black/5 transition-colors">
+        <button type="button" data-edge-gesture-exempt="true" onClick={() => navigate(APP_ROUTE_PATHS.settings)} className="absolute -top-3 left-0 tap-feedback p-3 rounded-full hover:bg-black/5 transition-colors">
           <Settings size={20} strokeWidth={1.8} className="text-black" />
         </button>
         <button type="button" onClick={() => navigate(APP_ROUTE_PATHS.aiSupport)} className="absolute -top-3 right-0 tap-feedback p-3 rounded-full hover:bg-black/5 transition-colors">
@@ -184,13 +184,10 @@ export default function Profile() {
             <p className="text-xs text-[var(--color-text-secondary)] mt-1">Wallet unlocked</p>
             <div className="flex gap-2 mt-3 w-full max-w-[260px]">
               <button type="button" onClick={() => setShowWallet(true)} className="btn-accent tap-feedback flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2">
-                <Eye size={16} /> My Wallet
+                <Wallet size={16} /> My Wallet
               </button>
               <button type="button" onClick={lock} className="btn-outline tap-feedback w-10 h-10 rounded-lg flex items-center justify-center shrink-0">
                 <Lock size={16} />
-              </button>
-              <button type="button" onClick={() => setShowDisconnectConfirm(true)} className="btn-outline tap-feedback w-10 h-10 rounded-lg flex items-center justify-center text-red-500 shrink-0">
-                <LogOut size={16} />
               </button>
             </div>
           </>
@@ -232,7 +229,7 @@ export default function Profile() {
       <EditProfileSheet open={showEditProfile} onClose={() => setShowEditProfile(false)} currentProfile={profile} onSave={updateProfile} saving={updating} />
 
       {/* Stats + Menu container */}
-      <div className="relative mt-4 bg-white rounded-t-2xl after:absolute after:left-0 after:right-0 after:top-full after:h-screen after:bg-white">
+      <div className="relative mt-4 bg-white rounded-t-2xl shadow-[0_-4px_12px_rgba(0,0,0,0.06)] after:absolute after:left-0 after:right-0 after:top-full after:h-screen after:bg-white">
         {/* Buy UMBRA banner */}
         {connected && unlocked && (
           <>

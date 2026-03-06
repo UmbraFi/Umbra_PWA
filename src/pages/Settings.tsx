@@ -1,4 +1,4 @@
-import { Bell, ChevronRight, DollarSign, Eye, Globe, Info, LogOut, Palette, Trash2 } from 'lucide-react'
+import { Bell, ChevronRight, DollarSign, Eye, Globe, Info, LogOut, Trash2 } from 'lucide-react'
 import { useState } from 'react'
 import { useWallet } from '../hooks/useWallet'
 import BottomSheet from '../components/BottomSheet'
@@ -24,7 +24,6 @@ export type CurrencyCode = (typeof CURRENCIES)[number]['code']
 
 interface SettingsData {
   notifications: boolean
-  theme: 'light' | 'dark'
   currency: CurrencyCode
 }
 
@@ -33,7 +32,7 @@ function loadSettings(): SettingsData {
     const raw = localStorage.getItem(SETTINGS_KEY)
     if (raw) return { currency: 'USD', ...JSON.parse(raw) }
   } catch { /* ignore */ }
-  return { notifications: true, theme: 'light', currency: 'USD' }
+  return { notifications: true, currency: 'USD' }
 }
 
 function saveSettings(settings: SettingsData) {
@@ -106,17 +105,6 @@ export default function Settings() {
           <div className={`w-10 h-6 rounded-full transition-colors flex items-center px-0.5 ${settings.notifications ? 'bg-black' : 'bg-gray-300'}`}>
             <div className={`w-5 h-5 rounded-full bg-white shadow transition-transform ${settings.notifications ? 'translate-x-4' : 'translate-x-0'}`} />
           </div>
-        </button>
-
-        <div className="h-px bg-gray-100 mx-4" />
-
-        <button type="button" onClick={() => update({ theme: settings.theme === 'light' ? 'dark' : 'light' })} className="tap-feedback w-full flex items-center gap-3 px-4 py-4 text-left">
-          <Palette size={20} strokeWidth={1.5} className="text-[var(--color-text-secondary)]" />
-          <div className="flex-1">
-            <p className="text-sm font-medium">Theme</p>
-            <p className="text-xs text-[var(--color-text-secondary)]">{settings.theme === 'light' ? 'Light' : 'Dark'}</p>
-          </div>
-          <ChevronRight size={16} className="text-gray-300" />
         </button>
 
         <div className="h-px bg-gray-100 mx-4" />

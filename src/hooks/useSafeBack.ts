@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { animateStackOut } from './useSwipeNavigation'
+import { animateStackOut, isSwipeExitActive } from './useSwipeNavigation'
 
 interface BackState {
   from?: string
@@ -21,17 +21,22 @@ export function useSafeBack(fallbackPath = '/') {
     const from = typeof state?.from === 'string' ? state.from : null
 
     const doNavigate = () => {
-      if (from && from !== currentPath) {
-        navigate(from, { replace: true })
-        return
-      }
-
       if (hasRouterHistory()) {
         navigate(-1)
         return
       }
 
+      if (from && from !== currentPath) {
+        navigate(from, { replace: true })
+        return
+      }
+
       navigate(fallbackPath, { replace: true })
+    }
+
+    if (isSwipeExitActive()) {
+      doNavigate()
+      return
     }
 
     animateStackOut(doNavigate)

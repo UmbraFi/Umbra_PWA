@@ -15,6 +15,21 @@ const items: { type: ListingType; label: string }[] = [
   { type: 'win', label: 'Win' },
 ]
 
+const indicatorStyles: Record<ListingType, string> = {
+  picks:
+    'bg-[linear-gradient(90deg,rgba(168,204,51,0),#a8cc33_22%,#a8cc33_78%,rgba(168,204,51,0))] shadow-[0_0_12px_rgba(168,204,51,0.28)]',
+  new:
+    'bg-[linear-gradient(90deg,rgba(123,210,255,0),#7bd2ff_22%,#7bd2ff_78%,rgba(123,210,255,0))] shadow-[0_0_12px_rgba(123,210,255,0.24)]',
+  hot:
+    'bg-[linear-gradient(90deg,rgba(255,132,165,0),#ff84a5_22%,#ff84a5_78%,rgba(255,132,165,0))] shadow-[0_0_12px_rgba(255,132,165,0.22)]',
+  basic:
+    'bg-[linear-gradient(90deg,rgba(10,10,10,0),rgba(10,10,10,0.44)_22%,rgba(10,10,10,0.44)_78%,rgba(10,10,10,0))] shadow-none',
+  bid:
+    'bg-[linear-gradient(90deg,rgba(255,191,92,0),#ffbf5c_22%,#ffbf5c_78%,rgba(255,191,92,0))] shadow-[0_0_12px_rgba(255,191,92,0.22)]',
+  win:
+    'bg-[linear-gradient(90deg,rgba(169,141,255,0),#a98dff_22%,#a98dff_78%,rgba(169,141,255,0))] shadow-[0_0_12px_rgba(169,141,255,0.22)]',
+}
+
 interface Props {
   selected: ListingType[]
   onChange: (types: ListingType[]) => void
@@ -44,29 +59,33 @@ export default function ListingTypeBar({ selected, onChange }: Props) {
 
   return (
     <div className="relative flex items-center pt-2">
-      {/* Scrollable tags area */}
-      <div className="flex items-center gap-4 overflow-x-auto scrollbar-hide pl-2 pr-10">
+      <div className="relative flex items-center gap-4 overflow-x-auto scrollbar-hide pl-2 pr-10">
         {items.map(({ type, label }, i) => {
           const active = selected.includes(type)
           return (
             <span key={type} className="flex items-center gap-4 shrink-0">
               {i > 0 && (
-                <span className="w-px h-3.5 bg-[var(--color-border)] shrink-0" />
+                <span className="h-1 w-1 rounded-full bg-black/12 shrink-0 -translate-y-[4px]" />
               )}
               <button
                 type="button"
                 onClick={() => toggle(type)}
-                className={`relative pb-2 text-[15px] tracking-wide transition-colors whitespace-nowrap ${
+                className={`relative pb-2 text-[15px] tracking-[0.08em] transition-all duration-200 whitespace-nowrap ${
                   active
-                    ? 'text-[#a8cc33] font-bold'
+                    ? 'text-[var(--color-text)] font-semibold'
                     : 'text-[var(--color-text-secondary)] font-medium hover:text-[var(--color-text)]'
                 }`}
+                aria-pressed={active}
               >
                 {/* Invisible bold text to reserve width and prevent layout shift */}
-                <span className="invisible font-bold" aria-hidden="true">{label}</span>
-                <span className="absolute inset-0 flex items-center justify-center pb-2">{label}</span>
+                <span className="invisible font-semibold" aria-hidden="true">{label}</span>
+                <span className="absolute inset-0 flex items-center justify-center pb-2">
+                  <span className={`relative leading-none ${active ? 'drop-shadow-[0_1px_8px_rgba(10,10,10,0.06)]' : ''}`}>
+                    {label}
+                  </span>
+                </span>
                 {active && (
-                  <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-[#a8cc33]" />
+                  <span className={`absolute bottom-0 left-1 right-1 h-[2px] rounded-full ${indicatorStyles[type]}`} />
                 )}
               </button>
             </span>

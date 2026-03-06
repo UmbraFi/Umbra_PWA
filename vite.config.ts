@@ -63,6 +63,7 @@ export default defineConfig({
         theme_color: '#F5F5F5',
         background_color: '#F5F5F5',
         display: 'standalone',
+        orientation: 'portrait',
         display_override: ['standalone', 'minimal-ui'],
         start_url: '/Umbra_PWA/',
         scope: '/Umbra_PWA/',

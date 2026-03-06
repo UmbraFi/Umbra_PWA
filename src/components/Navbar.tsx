@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ChevronLeft, ArrowRight, Search, X, Gavel, ShoppingCart, ShoppingBag, Ticket, Archive } from 'lucide-react'
+import { ArrowRight, Search, X, Gavel, ShoppingCart, ShoppingBag, Ticket, Archive } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import type { SellType } from '../store/useStore'
 import type { RouteMeta } from '../navigation/routeMeta'
@@ -16,6 +16,7 @@ import GlitchLogo from './GlitchLogo'
 import ListingTypeBar, { type ListingType } from './ListingTypeBar'
 import DiscoverControls from './DiscoverControls'
 import FollowedSellersBar from './FollowedSellersBar'
+import StackHeader from './StackHeader'
 
 interface NavbarProps {
   variant: 'tab' | 'stack'
@@ -283,25 +284,5 @@ export default function Navbar({ variant, routeMeta }: NavbarProps) {
   }
 
   // Stack variant: back button + title + optional exit
-  return (
-    <nav
-      className="sticky top-0 z-50 bg-[var(--color-bg)]"
-      style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
-    >
-      <div className="max-w-7xl mx-auto px-1.5 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-2">
-        <button
-          type="button"
-          onClick={goBack}
-          className="tap-feedback p-1.5 rounded-full hover:bg-black/5 transition-colors"
-          aria-label="Go back"
-        >
-          <ChevronLeft size={20} strokeWidth={1.8} className="text-black" />
-        </button>
-
-        <span className="text-sm font-semibold text-center truncate">{routeMeta.title}</span>
-
-        <div className="w-[32px]" />
-      </div>
-    </nav>
-  )
+  return <StackHeader title={routeMeta.title} onBack={goBack} />
 }
