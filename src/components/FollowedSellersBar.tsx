@@ -23,7 +23,7 @@ const FollowedSellersBar = memo(function FollowedSellersBar() {
   if (followedSellers.length === 0) return null
 
   return (
-    <div className="py-2">
+    <div className="pt-2 pb-0.5">
       <div className="flex items-center justify-between gap-2 mb-1.5">
         <p className="text-xs font-medium text-[var(--color-text-secondary)]">Followed sellers</p>
         {selectedSellers.length > 0 && (

@@ -17,6 +17,25 @@ const TAB_PATHS = new Set<string>([
   APP_ROUTE_PATHS.profile,
 ])
 
+interface StackLocationState {
+  from?: string
+}
+
+interface StackCacheEntry {
+  depth: number
+  element: ReactElement
+}
+
+const getPathnameFromRoute = (path: string) => {
+  const queryIndex = path.indexOf('?')
+  return queryIndex >= 0 ? path.slice(0, queryIndex) : path
+}
+
+const isStackPath = (path: string) => {
+  const pathname = normalizePathname(getPathnameFromRoute(path))
+  return !TAB_PATHS.has(pathname)
+}
+
 /** Enables swipe-right-to-go-back for every stack route */
 function StackSwipeHandler() {
   const goBack = useSafeBack()
@@ -34,9 +53,11 @@ export default function Layout() {
   const routeMeta = resolveRouteMeta(location.pathname)
   const currentPath = `${location.pathname}${location.search}`
   const normalizedPathname = normalizePathname(location.pathname)
+  const locationState = location.state as StackLocationState | null
   const isTabRoute = TAB_PATHS.has(normalizedPathname)
   const shouldAnimate = !reduceMotion
   const tabCacheRef = useRef<Map<string, ReactElement>>(new Map())
+  const stackCacheRef = useRef<Map<string, StackCacheEntry>>(new Map())
   const lastActiveTabRef = useRef<string>(APP_ROUTE_PATHS.home)
   const stackOutletRef = useRef<{ path: string; element: ReactElement } | null>(null)
 
@@ -46,6 +67,14 @@ export default function Layout() {
   const justExitedStack = !isStackRoute && prevIsStackRef.current
   const shouldBlockTabPointerEvents = isStackRoute || justExitedStack || exitingStack
   const shouldShowTapShield = !isStackRoute && (justExitedStack || exitingStack)
+  const stackFromPath = isStackRoute && typeof locationState?.from === 'string' && isStackPath(locationState.from)
+    ? locationState.from
+    : null
+  const parentStackDepth = stackFromPath
+    ? (stackCacheRef.current.get(stackFromPath)?.depth ?? 1)
+    : 0
+  const currentStackDepth = isStackRoute ? parentStackDepth + 1 : 0
+  const swipeExitActive = isSwipeExitActive()
 
   // Track when a stack route starts exiting — use useLayoutEffect instead
   // of in-render setState to avoid triggering a synchronous re-render that
@@ -76,12 +105,18 @@ export default function Layout() {
   isTabRouteRef.current = isTabRoute
   useEffect(() => {
     const EDGE = 40
+    const isEdgeGestureExempt = (target: EventTarget | null) => {
+      if (!(target instanceof Element)) return false
+      return !!target.closest('[data-edge-gesture-exempt="true"]')
+    }
+
     const handleEdgeTouch = (e: TouchEvent) => {
       if (
         e.touches.length === 1 &&
         e.touches[0].clientX <= EDGE &&
         isTabRouteRef.current
       ) {
+        if (isEdgeGestureExempt(e.target)) return
         e.preventDefault()
       }
     }
@@ -91,6 +126,7 @@ export default function Layout() {
 
   // Cache the stack outlet so it persists through the exit animation
   if (isStackRoute && outlet) {
+    stackCacheRef.current.set(currentPath, { depth: currentStackDepth, element: outlet })
     stackOutletRef.current = { path: `${location.pathname}${location.search}`, element: outlet }
   }
 
@@ -107,6 +143,12 @@ export default function Layout() {
     : routeMeta
   const showBottomNav = tabRouteMeta.showBottomNav && !shouldBlockTabPointerEvents
   const blockedStackBackTarget = isStackRoute ? getBlockedStackBackTarget(currentPath) : null
+  const stackUnderlayEntry = stackFromPath ? stackCacheRef.current.get(stackFromPath) ?? null : null
+  const stackUnderlayMeta = stackFromPath
+    ? resolveRouteMeta(getPathnameFromRoute(stackFromPath))
+    : null
+  const stackUnderlayZIndex = stackUnderlayEntry ? 70 + stackUnderlayEntry.depth * 10 : 0
+  const currentStackZIndex = isStackRoute ? 70 + currentStackDepth * 10 : 0
 
   if (blockedStackBackTarget) {
     return <Navigate to={blockedStackBackTarget} replace />
@@ -124,7 +166,7 @@ export default function Layout() {
         className="min-h-screen flex flex-col"
         style={shouldBlockTabPointerEvents ? { pointerEvents: 'none' } : undefined}
       >
-        <main className={`flex-1 px-1.5 relative overflow-x-hidden ${tabRouteMeta.showNavbar ? (tabRouteMeta.key === 'sell' ? 'pt-[calc(env(safe-area-inset-top,0px)+5rem)]' : tabRouteMeta.key === 'messages' ? 'pt-[calc(env(safe-area-inset-top,0px)+5rem)]' : tabRouteMeta.key === 'follow' ? 'pt-[calc(env(safe-area-inset-top,0px)+10.3rem)]' : 'pt-[calc(env(safe-area-inset-top,0px)+7.6rem)]') : 'pt-[calc(env(safe-area-inset-top,0px)+1rem)]'} ${tabRouteMeta.showBottomNav ? 'pb-nav' : 'pb-4'}`}>
+        <main className={`flex-1 px-1.5 relative overflow-x-hidden ${tabRouteMeta.showNavbar ? (tabRouteMeta.key === 'sell' ? 'pt-[calc(env(safe-area-inset-top,0px)+5rem)]' : tabRouteMeta.key === 'messages' ? 'pt-[calc(env(safe-area-inset-top,0px)+5rem)]' : tabRouteMeta.key === 'follow' ? 'pt-[calc(env(safe-area-inset-top,0px)+10.7rem)]' : 'pt-[calc(env(safe-area-inset-top,0px)+7.6rem)]') : 'pt-[calc(env(safe-area-inset-top,0px)+1rem)]'} ${tabRouteMeta.showBottomNav ? 'pb-nav' : 'pb-4'}`}>
           {Array.from(tabCacheRef.current.entries()).map(([path, element]) => {
             const isActive = isTabRoute && path === normalizedPathname
             const isUnderlay = isStackRoute && path === lastActiveTabRef.current
@@ -152,6 +194,20 @@ export default function Layout() {
         />
       )}
 
+      {isStackRoute && stackUnderlayEntry && stackUnderlayMeta && (
+        <div
+          aria-hidden="true"
+          data-stack-underlay="true"
+          className="fixed inset-0 will-change-transform [backface-visibility:hidden] bg-[var(--color-bg)] overflow-y-auto flex flex-col pointer-events-none"
+          style={{ zIndex: stackUnderlayZIndex }}
+        >
+          {stackUnderlayMeta.showNavbar && <Navbar variant="stack" routeMeta={stackUnderlayMeta} />}
+          <div className="flex-1 px-2 pb-4">
+            {stackUnderlayEntry.element}
+          </div>
+        </div>
+      )}
+
       {/* ── Stack routes (overlay) ── */}
       <AnimatePresence initial={false} onExitComplete={() => {
         clearSwipeExit()
@@ -162,15 +218,16 @@ export default function Layout() {
         {isStackRoute && (
           <motion.div
             key={`${location.pathname}${location.search}`}
-            initial={shouldAnimate ? { x: '100%' } : false}
+            initial={shouldAnimate && !swipeExitActive ? { x: '100%' } : false}
             animate={{ x: 0 }}
-            exit={isSwipeExitActive() ? { opacity: 0 } : { x: '100%' }}
-            transition={shouldAnimate && !isSwipeExitActive() ? { duration: TRANSITION_DURATION, ease: [0.32, 0.72, 0, 1] } : { duration: 0 }}
-            data-stack-overlay
-            className="fixed inset-0 will-change-transform [backface-visibility:hidden] z-[70] bg-[var(--color-bg)] overflow-y-auto flex flex-col"
+            exit={swipeExitActive ? { opacity: 0 } : { x: '100%' }}
+            transition={shouldAnimate && !swipeExitActive ? { duration: TRANSITION_DURATION, ease: [0.32, 0.72, 0, 1] } : { duration: 0 }}
+            data-stack-overlay="current"
+            className="fixed inset-0 will-change-transform [backface-visibility:hidden] bg-[var(--color-bg)] overflow-y-auto flex flex-col"
+            style={{ zIndex: currentStackZIndex }}
           >
             <StackSwipeHandler />
-            <Navbar variant="stack" routeMeta={routeMeta} />
+            {routeMeta.showNavbar && <Navbar variant="stack" routeMeta={routeMeta} />}
             <div className="flex-1 px-2 pb-4">
               {stackOutletRef.current?.element}
             </div>
