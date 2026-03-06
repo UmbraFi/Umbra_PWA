@@ -2,9 +2,6 @@ import { useState, useRef, useEffect } from 'react'
 import { useParams, useLocation } from 'react-router-dom'
 import { Send, Package, Wifi, WifiOff } from 'lucide-react'
 import { mockTransactions, statusLabel, statusColor } from '../data/mockTransactions'
-import { useSwipeNavigation } from '../hooks/useSwipeNavigation'
-import { useSafeBack } from '../hooks/useSafeBack'
-import { APP_ROUTE_PATHS } from '../navigation/paths'
 import { useChatStore, type DisplayMessage } from '../store/useChatStore'
 import { useWalletStore } from '../store/useWalletStore'
 
@@ -12,13 +9,12 @@ export default function ChatDetail() {
   const { chatId } = useParams<{ chatId: string }>()
   const location = useLocation()
   const tx = mockTransactions.find((t) => t.id === chatId)
-  const goBack = useSafeBack(APP_ROUTE_PATHS.messages)
-  useSwipeNavigation({ onSwipeRight: goBack })
   const [input, setInput] = useState('')
   const bottomRef = useRef<HTMLDivElement>(null)
 
   // Get peerPubKey from route state (passed by Messages page)
-  const peerPubKey = (location.state as { peerPubKey?: string } | null)?.peerPubKey || ''
+  const state = location.state as Record<string, unknown> | null
+  const peerPubKey = (typeof state?.peerPubKey === 'string' ? state.peerPubKey : '')
   const orderID = tx?.orderId || chatId || ''
 
   const { isUnlocked } = useWalletStore()

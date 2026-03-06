@@ -6,7 +6,8 @@ import BottomNav from './BottomNav'
 import { normalizePathname, resolveRouteMeta } from '../navigation/routeMeta'
 import { APP_ROUTE_PATHS } from '../navigation/paths'
 import { armGhostClickGuard, blockStackReentry, getBlockedStackBackTarget } from '../navigation/ghostClickGuard'
-import { isSwipeExitActive, clearSwipeExit, setStackRouteActive } from '../hooks/useSwipeNavigation'
+import { isSwipeExitActive, clearSwipeExit, setStackRouteActive, useSwipeNavigation } from '../hooks/useSwipeNavigation'
+import { useSafeBack } from '../hooks/useSafeBack'
 
 const TAB_PATHS = new Set<string>([
   APP_ROUTE_PATHS.home,
@@ -15,6 +16,13 @@ const TAB_PATHS = new Set<string>([
   APP_ROUTE_PATHS.messages,
   APP_ROUTE_PATHS.profile,
 ])
+
+/** Enables swipe-right-to-go-back for every stack route */
+function StackSwipeHandler() {
+  const goBack = useSafeBack()
+  useSwipeNavigation({ onSwipeRight: goBack })
+  return null
+}
 
 const TRANSITION_DURATION = 0.3
 const GHOST_CLICK_GUARD_MS = 0
@@ -161,6 +169,7 @@ export default function Layout() {
             data-stack-overlay
             className="fixed inset-0 will-change-transform [backface-visibility:hidden] z-[70] bg-[var(--color-bg)] overflow-y-auto flex flex-col"
           >
+            <StackSwipeHandler />
             <Navbar variant="stack" routeMeta={routeMeta} />
             <div className="flex-1 px-2 pb-4">
               {stackOutletRef.current?.element}

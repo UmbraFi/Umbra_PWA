@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, ArrowRight, Search, X, Gavel, ShoppingCart, ShoppingBag, Ticket, Archive } from 'lucide-react'
+import { ChevronLeft, ArrowRight, Search, X, Gavel, ShoppingCart, ShoppingBag, Ticket, Archive } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import type { SellType } from '../store/useStore'
 import type { RouteMeta } from '../navigation/routeMeta'
@@ -62,10 +62,6 @@ export default function Navbar({ variant, routeMeta }: NavbarProps) {
     }
   }, [variant, routeMeta.kind, routeMeta.key])
 
-  const exitToHome = () => {
-    navigate(APP_ROUTE_PATHS.home, { replace: true })
-  }
-
   // Tab variant: logo + cart + search bar for all tabs
   if (variant === 'tab') {
     // Pages that show a simple title header instead of logo + search
@@ -80,7 +76,7 @@ export default function Navbar({ variant, routeMeta }: NavbarProps) {
             <button
               type="button"
               onClick={() => navigate(APP_ROUTE_PATHS.drafts)}
-              className="tap-feedback p-1.5 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors relative"
+              className="tap-feedback p-1.5 text-black transition-colors relative"
               aria-label="Drafts"
             >
               <Archive size={20} strokeWidth={1.8} />
@@ -276,30 +272,19 @@ export default function Navbar({ variant, routeMeta }: NavbarProps) {
       className="sticky top-0 z-50 bg-[var(--color-bg)]"
       style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
     >
-      <div className="max-w-7xl mx-auto px-3 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-2">
+      <div className="max-w-7xl mx-auto px-1.5 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-2">
         <button
           type="button"
           onClick={goBack}
-          className="tap-feedback p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
+          className="tap-feedback p-1.5 rounded-full hover:bg-black/5 transition-colors"
           aria-label="Go back"
         >
-          <ArrowLeft size={20} strokeWidth={2} />
+          <ChevronLeft size={20} strokeWidth={1.8} className="text-black" />
         </button>
 
         <span className="text-sm font-semibold text-center truncate">{routeMeta.title}</span>
 
-        {routeMeta.showExitButton ? (
-          <button
-            type="button"
-            onClick={exitToHome}
-            className="tap-feedback p-2 text-[var(--color-text-secondary)] hover:text-[var(--color-text)] transition-colors"
-            aria-label="Exit to home"
-          >
-            <X size={20} strokeWidth={2} />
-          </button>
-        ) : (
-          <div className="w-8" />
-        )}
+        <div className="w-[32px]" />
       </div>
     </nav>
   )

@@ -2,9 +2,9 @@ import { useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { MessageCircle, UserCheck, UserPlus, Star, Shield } from 'lucide-react'
 import { useStore } from '../store/useStore'
-import { useSwipeNavigation } from '../hooks/useSwipeNavigation'
-import { useSafeBack } from '../hooks/useSafeBack'
+import { useOnChainProfile } from '../hooks/useOnChainProfile'
 import ProductCard from '../components/ProductCard'
+import AvatarDisplay from '../components/AvatarDisplay'
 import { APP_ROUTE_PATHS } from '../navigation/paths'
 
 /** Derive a deterministic number from a string so mock stats stay stable. */
@@ -17,7 +17,7 @@ function hashCode(s: string) {
 export default function SellerProfile() {
   const { sellerId } = useParams<{ sellerId: string }>()
   const navigate = useNavigate()
-  const goBack = useSafeBack(APP_ROUTE_PATHS.home)
+
   const products = useStore((s) => s.products)
   const followedSellers = useStore((s) => s.followedSellers)
   const toggleFollowSeller = useStore((s) => s.toggleFollowSeller)
@@ -27,8 +27,9 @@ export default function SellerProfile() {
     [products, sellerId],
   )
 
-  const displayName = sellerId ?? 'Unknown'
-  const isFollowing = sellerId ? followedSellers.includes(displayName) : false
+  const { profile: sellerProfile } = useOnChainProfile(sellerId ?? null)
+  const displayName = sellerProfile?.displayName || sellerId || 'Unknown'
+  const isFollowing = sellerId ? followedSellers.includes(sellerId) : false
 
   // Deterministic mock stats based on seller address
   const stats = useMemo(() => {
@@ -45,9 +46,6 @@ export default function SellerProfile() {
     [sellerProducts],
   )
 
-  useSwipeNavigation({
-    onSwipeRight: goBack,
-  })
 
   return (
     <div
@@ -56,10 +54,12 @@ export default function SellerProfile() {
     >
       {/* Profile Header */}
       <div className="flex flex-col items-center pt-2 pb-5">
-        <div className="w-[72px] h-[72px] rounded-full bg-gray-100 flex items-center justify-center mb-3 ring-2 ring-[var(--color-border)]">
-          <span className="text-xl font-mono-accent font-bold text-[var(--color-text-secondary)]">
-            {displayName.slice(0, 2)}
-          </span>
+        <div className="mb-3 ring-2 ring-[var(--color-border)] rounded-full">
+          <AvatarDisplay
+            avatar={sellerProfile?.avatar ?? null}
+            fallbackInitials={displayName.slice(0, 2)}
+            size={72}
+          />
         </div>
         <p className="text-base font-semibold font-mono-accent">{displayName}</p>
         <div className="flex items-center gap-1.5 mt-1">
@@ -110,7 +110,7 @@ export default function SellerProfile() {
         <button
           type="button"
           onClick={() => {
-            if (sellerId) toggleFollowSeller(displayName)
+            if (sellerId) toggleFollowSeller(sellerId)
           }}
           className={`tap-feedback flex-1 py-2.5 rounded-lg flex items-center justify-center gap-2 ${
             isFollowing ? 'btn-outline' : 'btn-primary'

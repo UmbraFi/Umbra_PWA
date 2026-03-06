@@ -25,7 +25,11 @@ interface Store {
   isDiscoverPanelOpen: boolean
   bottomNavHidden: boolean
   sellType: SellType
+  favorites: string[]
+  browsingHistory: string[]
   sellStep: number
+  toggleFavorite: (productId: string) => void
+  addToHistory: (productId: string) => void
   setSearchQuery: (query: string) => void
   setDiscoverPanelOpen: (isOpen: boolean) => void
   setBottomNavHidden: (hidden: boolean) => void
@@ -74,8 +78,22 @@ export const useStore = create<Store>()((set, get) => ({
   isRefreshing: false,
   isDiscoverPanelOpen: false,
   bottomNavHidden: false,
+  favorites: [] as string[],
+  browsingHistory: [] as string[],
   sellType: 'regular' as SellType,
   sellStep: 0,
+
+  toggleFavorite: (productId) =>
+    set((state) => ({
+      favorites: toggleInList(state.favorites, productId),
+    })),
+  addToHistory: (productId) =>
+    set((state) => ({
+      browsingHistory: [
+        productId,
+        ...state.browsingHistory.filter((id) => id !== productId),
+      ].slice(0, 50),
+    })),
 
   setSearchQuery: (query) => set({ searchQuery: query }),
   setDiscoverPanelOpen: (isOpen) => set({ isDiscoverPanelOpen: isOpen, bottomNavHidden: isOpen }),

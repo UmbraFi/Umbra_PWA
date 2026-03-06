@@ -68,13 +68,13 @@ export default function Messages() {
         className="fixed top-0 left-0 right-0 z-50 bg-[var(--color-bg)]"
         style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
       >
-        <div className="max-w-7xl mx-auto px-1.5 h-10 grid grid-cols-[40px_1fr_40px] items-center">
+        <div className="max-w-7xl mx-auto px-1.5 h-10 flex items-center justify-between">
           {/* Left icon */}
           {editMode ? (
             <button
               type="button"
               onClick={exitEdit}
-              className="tap-feedback p-1.5 text-[var(--color-text-secondary)]"
+              className="tap-feedback p-1.5 text-black"
               aria-label="Cancel edit"
             >
               <X size={20} strokeWidth={2} />
@@ -83,7 +83,7 @@ export default function Messages() {
             <button
               type="button"
               onClick={() => setEditMode(true)}
-              className="tap-feedback p-1.5 text-[var(--color-text-secondary)]"
+              className="tap-feedback p-1.5 text-black"
               aria-label="Edit messages"
             >
               <Pencil size={18} strokeWidth={2} />
@@ -91,7 +91,7 @@ export default function Messages() {
           )}
 
           {/* Centered title */}
-          <h1 className="text-base font-semibold text-center">Messages</h1>
+          <h1 className="text-lg font-semibold">Messages</h1>
 
           {/* Right icon */}
           {editMode ? (
@@ -102,16 +102,16 @@ export default function Messages() {
               className="tap-feedback p-1.5 text-red-500 disabled:text-[var(--color-text-secondary)] disabled:opacity-40"
               aria-label="Delete selected"
             >
-              <Trash2 size={18} strokeWidth={2} />
+              <Trash2 size={20} strokeWidth={1.8} />
             </button>
           ) : (
             <button
               type="button"
               onClick={handleMarkAllRead}
-              className="tap-feedback p-1.5 text-[var(--color-text-secondary)]"
+              className="tap-feedback p-1.5 text-black transition-colors"
               aria-label="Mark all as read"
             >
-              <CheckCheck size={18} strokeWidth={2} />
+              <CheckCheck size={20} strokeWidth={1.8} />
             </button>
           )}
         </div>

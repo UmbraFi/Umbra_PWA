@@ -126,14 +126,19 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight }: SwipeHandlers)
       // opacity, so this inline style survives the exit frame.
       if (overlay) {
         overlay.style.opacity = '0'
+        overlay.style.visibility = 'hidden'
       }
       cb()
-      // Clean up inline styles after navigation — the Layout useEffect
-      // will take over once isStackRoute flips to false
-      if (tabLayer) {
-        tabLayer.style.transform = ''
-        tabLayer.style.transition = ''
-      }
+      // Defer tab-layer cleanup until after React has re-rendered and
+      // removed the data-shifted attribute.  Clearing inline styles
+      // synchronously causes a brief jump to -80px (the CSS rule)
+      // before data-shifted is removed, which produces a visible flicker.
+      requestAnimationFrame(() => {
+        if (tabLayer) {
+          tabLayer.style.transform = ''
+          tabLayer.style.transition = ''
+        }
+      })
     }, 150)
   }
 

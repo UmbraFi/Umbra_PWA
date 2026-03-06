@@ -10,6 +10,16 @@ export const APP_ROUTE_PATHS = {
   seller: '/seller/:sellerId',
   chat: '/chat/:chatId',
   drafts: '/drafts',
+  addresses: '/addresses',
+  myListings: '/my-listings',
+  mySpace: '/my-space',
+  mySales: '/my-sales',
+  myPurchases: '/my-purchases',
+  browsingHistory: '/browsing-history',
+  favorites: '/favorites',
+  followedStores: '/followed-stores',
+  settings: '/settings',
+  aiSupport: '/ai-support',
 } as const
 
 export const APP_ROUTE_PREFIXES = {

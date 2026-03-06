@@ -1,5 +1,6 @@
 import { lazy, Suspense, useState, useEffect } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
+import AuthGate from './components/AuthGate'
 import Layout from './components/Layout'
 import ScrollToTop from './components/ScrollToTop'
 import { APP_ROUTE_PATHS } from './navigation/paths'
@@ -17,6 +18,16 @@ const ChatDetail = lazy(() => import('./pages/ChatDetail'))
 const Cart = lazy(() => import('./pages/Cart'))
 const FeedTagFilters = lazy(() => import('./pages/FeedTagFilters'))
 const Drafts = lazy(() => import('./pages/Drafts'))
+const Addresses = lazy(() => import('./pages/Addresses'))
+const MyListings = lazy(() => import('./pages/MyListings'))
+const MySpace = lazy(() => import('./pages/MySpace'))
+const MySales = lazy(() => import('./pages/MySales'))
+const MyPurchases = lazy(() => import('./pages/MyPurchases'))
+const BrowsingHistory = lazy(() => import('./pages/BrowsingHistory'))
+const Favorites = lazy(() => import('./pages/Favorites'))
+const FollowedStores = lazy(() => import('./pages/FollowedStores'))
+const SettingsPage = lazy(() => import('./pages/Settings'))
+const AISupport = lazy(() => import('./pages/AISupport'))
 
 export default function App() {
   const [standalone, setStandalone] = useState(() => isStandalone())
@@ -38,6 +49,7 @@ export default function App() {
   return (
     <HashRouter>
       <ScrollToTop />
+      <AuthGate />
       <Suspense fallback={<div className="min-h-screen" />}>
         <Routes>
           <Route element={<Layout />}>
@@ -52,6 +64,16 @@ export default function App() {
             <Route path={APP_ROUTE_PATHS.cart} element={<Cart />} />
             <Route path={APP_ROUTE_PATHS.feedTags} element={<FeedTagFilters />} />
             <Route path={APP_ROUTE_PATHS.drafts} element={<Drafts />} />
+            <Route path={APP_ROUTE_PATHS.addresses} element={<Addresses />} />
+            <Route path={APP_ROUTE_PATHS.myListings} element={<MyListings />} />
+            <Route path={APP_ROUTE_PATHS.mySpace} element={<MySpace />} />
+            <Route path={APP_ROUTE_PATHS.mySales} element={<MySales />} />
+            <Route path={APP_ROUTE_PATHS.myPurchases} element={<MyPurchases />} />
+            <Route path={APP_ROUTE_PATHS.browsingHistory} element={<BrowsingHistory />} />
+            <Route path={APP_ROUTE_PATHS.favorites} element={<Favorites />} />
+            <Route path={APP_ROUTE_PATHS.followedStores} element={<FollowedStores />} />
+            <Route path={APP_ROUTE_PATHS.settings} element={<SettingsPage />} />
+            <Route path={APP_ROUTE_PATHS.aiSupport} element={<AISupport />} />
             <Route path="*" element={<Navigate to={APP_ROUTE_PATHS.home} replace />} />
           </Route>
         </Routes>
