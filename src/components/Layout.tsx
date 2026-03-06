@@ -25,7 +25,7 @@ function StackSwipeHandler() {
 }
 
 const TRANSITION_DURATION = 0.3
-const GHOST_CLICK_GUARD_MS = 0
+const GHOST_CLICK_GUARD_MS = 50
 
 export default function Layout() {
   const location = useLocation()
@@ -164,7 +164,7 @@ export default function Layout() {
             key={`${location.pathname}${location.search}`}
             initial={shouldAnimate ? { x: '100%' } : false}
             animate={{ x: 0 }}
-            exit={{ x: '100%' }}
+            exit={isSwipeExitActive() ? { opacity: 0 } : { x: '100%' }}
             transition={shouldAnimate && !isSwipeExitActive() ? { duration: TRANSITION_DURATION, ease: [0.32, 0.72, 0, 1] } : { duration: 0 }}
             data-stack-overlay
             className="fixed inset-0 will-change-transform [backface-visibility:hidden] z-[70] bg-[var(--color-bg)] overflow-y-auto flex flex-col"

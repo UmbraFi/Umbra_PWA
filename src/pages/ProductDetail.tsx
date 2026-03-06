@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom'
+import { ChevronLeft } from 'lucide-react'
 import { useStore } from '../store/useStore'
 import { useSwipeNavigation } from '../hooks/useSwipeNavigation'
+import { useSafeBack } from '../hooks/useSafeBack'
 import { APP_ROUTE_PATHS, toSellerPath } from '../navigation/paths'
 
 export default function ProductDetail() {
@@ -34,6 +36,8 @@ export default function ProductDetail() {
     }
   }
 
+  const goBack = useSafeBack(APP_ROUTE_PATHS.home)
+
   useSwipeNavigation({
     onSwipeLeft: goToSeller,
   })
@@ -51,9 +55,28 @@ export default function ProductDetail() {
 
   return (
     <div
-      className="max-w-lg mx-auto pt-3"
+      className="max-w-lg mx-auto"
       data-allow-horizontal-swipe="true"
     >
+      {/* Back button */}
+      <nav
+        className="sticky top-0 z-50 bg-[var(--color-bg)]"
+        style={{ paddingTop: 'env(safe-area-inset-top, 0px)' }}
+      >
+        <div className="px-1.5 h-14 grid grid-cols-[auto_1fr_auto] items-center gap-2">
+          <button
+            type="button"
+            onClick={goBack}
+            className="tap-feedback p-1.5 rounded-full hover:bg-black/5 transition-colors"
+            aria-label="Go back"
+          >
+            <ChevronLeft size={20} strokeWidth={1.8} className="text-black" />
+          </button>
+          <span className="text-sm font-semibold text-center truncate">Product</span>
+          <div className="w-[32px]" />
+        </div>
+      </nav>
+
       {/* Image */}
       <div className="bg-gray-100 rounded-lg overflow-hidden relative">
         <img

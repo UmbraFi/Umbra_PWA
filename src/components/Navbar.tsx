@@ -49,18 +49,27 @@ export default function Navbar({ variant, routeMeta }: NavbarProps) {
   useEffect(() => {
     if (variant !== 'tab' || (routeMeta.kind !== 'home' && routeMeta.key !== 'follow')) return
     let rafId = 0
+    let accumulated = 0
+    const SCROLL_THRESHOLD = 12
     const handleScroll = () => {
       if (rafId) return
       rafId = requestAnimationFrame(() => {
         rafId = 0
         const y = window.scrollY
         const delta = y - lastScrollY.current
-        if (delta > 3) {
-          setHeaderVisible(false)
-        } else if (delta < -1) {
-          setHeaderVisible(true)
-        }
         lastScrollY.current = y
+        // Accumulate scroll in the same direction; reset on direction change
+        if ((delta > 0 && accumulated < 0) || (delta < 0 && accumulated > 0)) {
+          accumulated = 0
+        }
+        accumulated += delta
+        if (accumulated > SCROLL_THRESHOLD) {
+          setHeaderVisible(false)
+          accumulated = 0
+        } else if (accumulated < -SCROLL_THRESHOLD) {
+          setHeaderVisible(true)
+          accumulated = 0
+        }
       })
     }
     window.addEventListener('scroll', handleScroll, { passive: true })

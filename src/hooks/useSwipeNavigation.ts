@@ -24,6 +24,52 @@ export const isStackRouteActive = () => _stackRouteActive
 
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max)
 
+/**
+ * Animate the stack overlay off-screen (same as swipe-right finish),
+ * then invoke the callback.  Exported so back-buttons can reuse the
+ * exact same transition as the swipe gesture.
+ */
+export function animateStackOut(cb: () => void) {
+  const vw = window.innerWidth
+  const overlay = document.querySelector<HTMLElement>('[data-stack-overlay]')
+  const tabLayer = document.querySelector<HTMLElement>('[data-tab-layer]')
+  const dimmer = document.querySelector<HTMLElement>('[data-swipe-dimmer]')
+
+  if (!overlay) {
+    // No overlay in the DOM (e.g. not a stack route) — just navigate
+    cb()
+    return
+  }
+
+  overlay.style.transition = 'transform 0.15s ease-out'
+  overlay.style.transform = `translateX(${vw}px)`
+
+  if (tabLayer) {
+    tabLayer.style.transition = 'transform 0.15s ease-out'
+    tabLayer.style.transform = 'translateX(0px)'
+  }
+  if (dimmer) {
+    dimmer.style.transition = 'opacity 0.15s ease-out'
+    dimmer.style.opacity = '0'
+  }
+
+  _swipeExitActive = true
+
+  setTimeout(() => {
+    if (overlay) {
+      overlay.style.opacity = '0'
+      overlay.style.visibility = 'hidden'
+    }
+    cb()
+    requestAnimationFrame(() => {
+      if (tabLayer) {
+        tabLayer.style.transform = ''
+        tabLayer.style.transition = ''
+      }
+    })
+  }, 150)
+}
+
 export function useSwipeNavigation({ onSwipeLeft, onSwipeRight }: SwipeHandlers) {
   const startX = useRef(0)
   const startY = useRef(0)
@@ -100,47 +146,7 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight }: SwipeHandlers)
     }
   }
 
-  const animateOut = (cb: () => void) => {
-    const vw = window.innerWidth
-    const overlay = getOverlay()
-    const tabLayer = getTabLayer()
-    const dimmer = getDimmer()
-    if (overlay) {
-      overlay.style.transition = 'transform 0.15s ease-out'
-      overlay.style.transform = `translateX(${vw}px)`
-    }
-    if (tabLayer) {
-      tabLayer.style.transition = 'transform 0.15s ease-out'
-      tabLayer.style.transform = 'translateX(0px)'
-    }
-    if (dimmer) {
-      dimmer.style.transition = 'opacity 0.15s ease-out'
-      dimmer.style.opacity = '0'
-    }
-    // Signal Layout to skip framer-motion exit animation (element is already off-screen)
-    _swipeExitActive = true
-    setTimeout(() => {
-      // Hide overlay before navigating so framer-motion's exit animation
-      // (which resets transform to x:0) doesn't cause a visible flash-back.
-      // Framer-motion only controls `transform` in the exit variant, not
-      // opacity, so this inline style survives the exit frame.
-      if (overlay) {
-        overlay.style.opacity = '0'
-        overlay.style.visibility = 'hidden'
-      }
-      cb()
-      // Defer tab-layer cleanup until after React has re-rendered and
-      // removed the data-shifted attribute.  Clearing inline styles
-      // synchronously causes a brief jump to -80px (the CSS rule)
-      // before data-shifted is removed, which produces a visible flicker.
-      requestAnimationFrame(() => {
-        if (tabLayer) {
-          tabLayer.style.transform = ''
-          tabLayer.style.transition = ''
-        }
-      })
-    }, 150)
-  }
+  const animateOut = (cb: () => void) => animateStackOut(cb)
 
   useEffect(() => {
     const handleTouchStart = (e: TouchEvent) => {
@@ -235,7 +241,8 @@ export function useSwipeNavigation({ onSwipeLeft, onSwipeRight }: SwipeHandlers)
       document.removeEventListener('touchcancel', handleTouchCancel)
       cancelAnimationFrame(rafId.current)
     }
-  })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Separate unmount-only cleanup for tabLayer styles so re-renders
   // during exit animation don't reset the CSS transition mid-way.

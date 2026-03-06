@@ -1,9 +1,11 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { MessageCircle, Pencil, CheckCheck, Search, Trash2, X } from 'lucide-react'
 import { mockTransactions, statusLabel, statusColor } from '../data/mockTransactions'
 import { useChatStore } from '../store/useChatStore'
 import { useWalletStore } from '../store/useWalletStore'
+import { usePullToRefresh } from '../hooks/usePullToRefresh'
+import PullToRefreshIndicator from '../components/PullToRefreshIndicator'
 
 export default function Messages() {
   const location = useLocation()
@@ -16,6 +18,17 @@ export default function Messages() {
 
   const { isUnlocked } = useWalletStore()
   const { unreadOrders, fetchUnread, connectWebSocket, disconnectWebSocket } = useChatStore()
+
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true)
+    try {
+      await fetchUnread()
+    } finally {
+      setIsRefreshing(false)
+    }
+  }, [fetchUnread])
+  const { pullY, rotation, opacity, scale, touchHandlers } = usePullToRefresh(handleRefresh, isRefreshing)
 
   useEffect(() => {
     if (isUnlocked) {
@@ -62,7 +75,7 @@ export default function Messages() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto" {...touchHandlers}>
       {/* ── Fixed header ── */}
       <div
         className="fixed top-0 left-0 right-0 z-50 bg-[var(--color-bg)]"
@@ -139,6 +152,9 @@ export default function Messages() {
           </div>
         </div>
       </div>
+
+      {/* Pull-to-refresh indicator */}
+      <PullToRefreshIndicator pullY={pullY} rotation={rotation} opacity={opacity} scale={scale} isRefreshing={isRefreshing} />
 
       {/* ── Message list ── */}
       <div className="pt-1 -mx-2 min-h-screen bg-white">
