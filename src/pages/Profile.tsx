@@ -236,7 +236,7 @@ export default function Profile() {
             <button
               type="button"
               onClick={() => setShowBuyToken(true)}
-              className="tap-feedback w-full flex items-center gap-3 px-4 py-4 bg-gradient-to-r from-[var(--color-accent)]/15 to-[var(--color-accent)]/5 hover:from-[var(--color-accent)]/25 hover:to-[var(--color-accent)]/10 transition-colors text-left"
+              className="tap-feedback w-full rounded-t-2xl flex items-center gap-3 px-4 py-4 bg-gradient-to-r from-[var(--color-accent)]/15 to-[var(--color-accent)]/5 hover:from-[var(--color-accent)]/25 hover:to-[var(--color-accent)]/10 transition-colors text-left"
             >
               <div className="w-9 h-9 rounded-full bg-[var(--color-accent)] flex items-center justify-center">
                 <Coins size={18} strokeWidth={2} className="text-black" />

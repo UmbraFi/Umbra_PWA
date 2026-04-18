@@ -3,6 +3,7 @@ import { Navigate, useLocation, useOutlet } from 'react-router-dom'
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import Navbar from './Navbar'
 import BottomNav from './BottomNav'
+import { usePageResume } from '../hooks/usePageResume'
 import { normalizePathname, resolveRouteMeta } from '../navigation/routeMeta'
 import { APP_ROUTE_PATHS } from '../navigation/paths'
 import { armGhostClickGuard, blockStackReentry, getBlockedStackBackTarget } from '../navigation/ghostClickGuard'
@@ -97,6 +98,15 @@ export default function Layout() {
   useLayoutEffect(() => {
     setStackRouteActive(isStackRoute)
   }, [isStackRoute])
+
+  usePageResume(() => {
+    if (isStackRoute) return
+
+    clearSwipeExit()
+    prevIsStackRef.current = false
+    setStackRouteActive(false)
+    setExitingStack(false)
+  })
 
   // Block the browser / PWA native edge-swipe back gesture on tab pages.
   // Without this, swiping from the left edge on a first-level page triggers

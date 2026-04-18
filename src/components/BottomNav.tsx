@@ -1,5 +1,7 @@
+import { useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { Flame, Users, PlusCircle, MessageCircle, User, type LucideIcon } from 'lucide-react'
+import { usePageResume } from '../hooks/usePageResume'
 import { normalizePathname, tabItems } from '../navigation/routeMeta'
 import { APP_ROUTE_PATHS } from '../navigation/paths'
 import { lockScrollCapture, rememberScrollPosition, toScrollKey } from '../navigation/scrollMemory'
@@ -24,17 +26,22 @@ export default function BottomNav() {
   const activePath = normalizePathname(pathname)
   const currentKey = toScrollKey(pathname, search)
   const bottomNavHidden = useStore((s) => s.bottomNavHidden)
+  const [visualVersion, setVisualVersion] = useState(0)
+
+  usePageResume(() => {
+    setVisualVersion((value) => value + 1)
+  })
 
   return (
     <nav
       className="liquid-tabbar-shell fixed bottom-0 left-0 right-0 z-50 transition-transform duration-300 ease-in-out"
       style={{
         paddingBottom: 'var(--liquid-tabbar-offset)',
-        transform: bottomNavHidden ? 'translateY(100%)' : 'translateY(0)',
+        transform: bottomNavHidden ? 'translate3d(0, 100%, 0)' : 'translate3d(0, 0, 0)',
       }}
     >
       <div className="relative z-10 max-w-lg mx-auto px-4">
-        <div className="liquid-tabbar pointer-events-auto rounded-full p-1.5">
+        <div key={visualVersion} className="liquid-tabbar pointer-events-auto rounded-full p-1.5">
           <div className="grid grid-cols-5 gap-1">
             {tabs.map(({ to, label, icon: Icon }) => {
               const active = activePath === to

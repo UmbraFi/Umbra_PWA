@@ -6,6 +6,7 @@ import type { Product } from '../data/mockProducts'
 import { isGhostClickGuardActive } from '../navigation/ghostClickGuard'
 import { toProductPath, toSellerPath } from '../navigation/paths'
 import { useStore } from '../store/useStore'
+import { getSellerAvatarColor, getSellerAvatarLabel } from '../utils/sellerAvatar'
 
 type SellerUpdate = {
   seller: string
@@ -147,25 +148,26 @@ export default function Discover() {
               const extraCount = update.products.length - previewProducts.length
 
               return (
-                <article
-                  key={update.seller}
-                  className="rounded-lg bg-white p-3.5"
-                  style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
-                >
-                  <div className="flex gap-3.5">
+                <article key={update.seller} className="flex items-start gap-2.5">
                     <Link
                       to={toSellerPath(update.seller)}
                       state={{ from: fromPath }}
                       className="shrink-0 pt-0.5"
                     >
-                      <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center">
-                        <span className="text-xs font-mono-accent font-bold text-[var(--color-text-secondary)]">
-                          {update.seller.slice(0, 2)}
+                      <div
+                        className="flex h-11 w-11 items-center justify-center rounded-full shadow-sm"
+                        style={{ backgroundColor: getSellerAvatarColor(update.seller) }}
+                      >
+                        <span className="text-[11px] font-semibold tracking-wide text-white">
+                          {getSellerAvatarLabel(update.seller)}
                         </span>
                       </div>
                     </Link>
 
-                    <div className="min-w-0 flex-1">
+                    <div
+                      className="min-w-0 flex-1 rounded-lg bg-white p-3"
+                      style={{ boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}
+                    >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-1.5">
@@ -276,7 +278,6 @@ export default function Discover() {
                         </span>
                       </div>
                     </div>
-                  </div>
                 </article>
               )
             })}

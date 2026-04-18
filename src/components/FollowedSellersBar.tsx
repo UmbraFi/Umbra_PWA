@@ -1,16 +1,6 @@
 import { memo, useMemo } from 'react'
 import { useStore } from '../store/useStore'
-
-const avatarPalette = ['#111827', '#1F2937', '#0F172A', '#334155', '#3F3F46', '#27272A']
-
-const getSellerAvatarSeed = (seller: string) =>
-  seller.split('').reduce((seed, char) => seed + char.charCodeAt(0), 0)
-
-const getSellerAvatarLabel = (seller: string) => {
-  const compact = seller.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()
-  if (compact.length >= 2) return compact.slice(0, 2)
-  return seller.slice(0, 2).toUpperCase()
-}
+import { getSellerAvatarColor, getSellerAvatarLabel } from '../utils/sellerAvatar'
 
 const FollowedSellersBar = memo(function FollowedSellersBar() {
   const followedSellers = useStore((s) => s.followedSellers)
@@ -55,10 +45,7 @@ const FollowedSellersBar = memo(function FollowedSellersBar() {
                     ? 'ring-2 ring-[var(--color-accent)] ring-offset-2 ring-offset-[var(--color-bg)]'
                     : ''
                 }`}
-                style={{
-                  backgroundColor:
-                    avatarPalette[getSellerAvatarSeed(seller) % avatarPalette.length],
-                }}
+                style={{ backgroundColor: getSellerAvatarColor(seller) }}
               >
                 <span className="text-[11px] font-semibold tracking-wide text-white">
                   {getSellerAvatarLabel(seller)}
